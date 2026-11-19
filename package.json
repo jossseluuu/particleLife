@@ -1,0 +1,28 @@
+{
+  "name": "particle-life",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Ecosistema 2D de partículas con matrices de atracción, simulado y renderizado íntegramente en GPU (WebGPU).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "validate": "vite-node test/validate.ts",
+    "smoke": "node test/browser.mjs http://localhost:5173/"
+  },
+  "dependencies": {
+    "tweakpane": "^4.0.5"
+  },
+  "devDependencies": {
+    "@tweakpane/core": "^2.0.5",
+    "@types/node": "^26.6.6",
+    "@webgpu/types": "^0.1.74",
+    "puppeteer-core": "^25.18.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-node": "^6.0.0",
+    "webgpu": "^0.6.2"
+  }
+}

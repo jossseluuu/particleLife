@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Particle Life</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='10' cy='12' r='5' fill='%23ff3b5c'/><circle cx='22' cy='10' r='4' fill='%23ffd23b'/><circle cx='17' cy='22' r='6' fill='%233bb4ff'/></svg>" />
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="ui"></div>
+    <div id="error"></div>
+    <div id="help">
+      <h2>Particle Life · ayuda</h2>
+      <div class="cols">
+        <div>
+          <h3>Ratón</h3>
+          <p><kbd>clic</kbd> atraer partículas · <kbd>Shift</kbd>+<kbd>clic</kbd> repeler</p>
+          <p><kbd>clic derecho</kbd> / <kbd>Alt</kbd>+<kbd>arrastrar</kbd> desplazar · <kbd>rueda</kbd> zoom</p>
+          <p><kbd>doble clic</kbd> encuadrar el mundo</p>
+          <h3>Editor de matrices</h3>
+          <p><kbd>arrastrar ↕</kbd> ajustar · <kbd>rueda</kbd> paso fino</p>
+          <p><kbd>clic derecho</kbd> neutro · <kbd>doble clic</kbd> aleatorio</p>
+          <p><kbd>Shift</kbd> editar (a,b) y (b,a) a la vez</p>
+        </div>
+        <div>
+          <h3>Teclado</h3>
+          <p><kbd>Espacio</kbd> pausa · <kbd>S</kbd> un paso · <kbd>N</kbd> reiniciar posiciones</p>
+          <p><kbd>R</kbd> matriz aleatoria · <kbd>M</kbd> mutar · <kbd>B</kbd> nueva semilla</p>
+          <p><kbd>T</kbd> estelas · <kbd>P</kbd> captura PNG · <kbd>F</kbd> pantalla completa</p>
+          <p><kbd>H</kbd> ocultar interfaz · <kbd>1</kbd>–<kbd>9</kbd> presets · <kbd>?</kbd> esta ayuda</p>
+          <h3>Ideas</h3>
+          <p>Matrices <b>asimétricas</b> → persecuciones y estructuras vivas.</p>
+          <p>Conversión cíclica → ondas espirales tipo piedra-papel-tijera.</p>
+          <p>Propulsión + alineamiento → bandadas. Giro → vórtices.</p>
+        </div>
+      </div>
+      <p class="close">Pulsa <kbd>?</kbd> o <kbd>Esc</kbd> para cerrar</p>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
