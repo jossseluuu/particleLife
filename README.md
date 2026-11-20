@@ -26,7 +26,7 @@ serpientes, bandadas, vórtices, ondas espirales…
 Pulsa `?` dentro de la app para ver todos los controles.
 
 | Acción | Ratón / teclado | Táctil |
-|---|---|---|
+| --- | --- | --- |
 | Atraer / repeler partículas | clic / Shift+clic | 1 dedo |
 | Desplazar · zoom | clic derecho · rueda | 2 dedos · pellizcar |
 | Presets | teclas 1–9 | desplegable |
@@ -81,7 +81,7 @@ Qué se comprueba:
 ## Arquitectura
 
 | Archivo | Qué hace |
-|---|---|
+| --- | --- |
 | `src/shaders/sim.wgsl` | Simulación GPU: conteo por celdas, prefix-sum de 2 niveles, scatter, fuerzas y comportamientos |
 | `src/sim/simulation.ts` | Buffers, pipelines y paso de simulación en GPU |
 | `src/sim/cpuSimulation.ts` | Motor de respaldo en CPU (port fiel de `sim.wgsl`) |
