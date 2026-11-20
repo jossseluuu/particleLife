@@ -2,7 +2,7 @@ import { Pane } from 'tweakpane';
 import { Config, MAX_SPECIES, SHAPES, hslToHex, SpawnMode } from '../config';
 import { PRESETS } from '../presets';
 import { mulberry32, randomSeed } from '../rng';
-import { deleteLocal, downloadJson, listSaved, pickJsonFile, saveLocal, shareUrl } from './storage';
+import { deleteLocal, downloadJson, inArtifactViewer, listSaved, pickJsonFile, saveLocal, shareUrl } from './storage';
 
 export interface PanelHost {
   cfg: Config;
@@ -171,6 +171,11 @@ export class Panel {
     // ------------------------------------------------------------ Guardar / compartir
     const io = pane.addFolder({ title: 'Guardar / compartir', expanded: false });
     io.addButton({ title: 'Copiar enlace compartible' }).on('click', async () => {
+      if (inArtifactViewer()) {
+        // el visor sólo deja pasar "#nombre" en la URL: el estado no viaja en el enlace
+        host.toast('Aquí los enlaces no guardan el estado: usa «Exportar JSON» o la versión web');
+        return;
+      }
       const url = await shareUrl(host.cfg);
       history.replaceState(null, '', url);
       try {
@@ -182,14 +187,19 @@ export class Panel {
     });
     io.addButton({ title: 'Exportar JSON' }).on('click', () => downloadJson(host.cfg));
     io.addButton({ title: 'Importar JSON' }).on('click', async () => {
-      const c = await pickJsonFile();
-      if (c) host.applyConfig(c);
+      try {
+        const c = await pickJsonFile();
+        if (c) host.applyConfig(c);
+      } catch (e) {
+        host.toast((e as Error).message);
+      }
     });
     const saved = listSaved();
     const names = Object.keys(saved);
     const slot = { name: names[0] ?? '' };
     io.addButton({ title: 'Guardar en este navegador…' }).on('click', () => {
-      const name = prompt('Nombre del guardado:', `mundo ${names.length + 1}`);
+      // el visor de Artifacts no muestra prompt() (devuelve null): ahí se usa el nombre por defecto
+      const name = inArtifactViewer() ? `mundo ${names.length + 1}` : prompt('Nombre del guardado:', `mundo ${names.length + 1}`);
       if (!name) return;
       if (saveLocal(name, host.cfg)) {
         host.toast(`Guardado «${name}»`);
