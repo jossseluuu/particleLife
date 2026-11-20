@@ -1,5 +1,5 @@
 import { Pane } from 'tweakpane';
-import { Config, MAX_PARTICLES, MAX_SPECIES, SHAPES, hslToHex, SpawnMode } from '../config';
+import { Config, MAX_SPECIES, SHAPES, hslToHex, SpawnMode } from '../config';
 import { PRESETS } from '../presets';
 import { mulberry32, randomSeed } from '../rng';
 import { deleteLocal, downloadJson, listSaved, pickJsonFile, saveLocal, shareUrl } from './storage';
@@ -8,6 +8,8 @@ export interface PanelHost {
   cfg: Config;
   paused: boolean;
   presetIndex: number;
+  readonly engineKind: 'webgpu' | 'cpu';
+  readonly maxParticles: number;
   reset(): void;
   speciesChanged(): void;
   gridChanged(): void;
@@ -52,7 +54,12 @@ export class Panel {
   private build(): void {
     const host = this.host;
     const cfg = host.cfg;
-    const pane = new Pane({ container: this.container, title: 'Particle Life · ecosistema' });
+    const pane = new Pane({
+      container: this.container,
+      title: host.engineKind === 'cpu' ? 'Particle Life · modo CPU' : 'Particle Life · ecosistema',
+      expanded: !window.matchMedia('(max-width: 760px)').matches,
+    });
+    const gpu = host.engineKind === 'webgpu';
     this.pane = pane;
 
     // ------------------------------------------------------------ Ecosistema
@@ -69,7 +76,7 @@ export class Panel {
         host.toast(`Preset: ${PRESETS[ev.value].name}`);
       });
     eco
-      .addBinding(cfg, 'numParticles', { label: 'partículas', min: 1000, max: MAX_PARTICLES, step: 1000 })
+      .addBinding(cfg, 'numParticles', { label: 'partículas', min: 1000, max: host.maxParticles, step: 1000 })
       .on('change', (ev: ChangeEv) => ev.last && host.reset());
     // proxy: el nº de especies sólo se aplica al soltar el slider (cambia el tamaño de las matrices)
     const speciesState = { n: cfg.numSpecies };
@@ -128,7 +135,8 @@ export class Panel {
     const rc = cfg.render;
     const ren = pane.addFolder({ title: 'Render', expanded: false });
     const onR = () => host.renderChanged();
-    ren.addBinding(rc, 'colorMode', {
+    // Color por velocidad, orientación, bloom y tone mapping sólo existen en el render WebGPU.
+    if (gpu) ren.addBinding(rc, 'colorMode', {
       label: 'color',
       options: { especie: 0, velocidad: 1, 'especie × velocidad': 2, dirección: 3, 'degradado especies': 4 },
     });
@@ -137,17 +145,17 @@ export class Panel {
     ren.addBinding(rc, 'minPx', { label: 'tamaño mín. px', min: 0.5, max: 6, step: 0.1 });
     ren.addBinding(rc, 'softness', { label: 'halo', min: 0, max: 2, step: 0.05 });
     ren.addBinding(rc, 'brightness', { label: 'brillo', min: 0.05, max: 4, step: 0.05 });
-    ren.addBinding(rc, 'orient', { label: 'orientar formas' });
-    ren.addBinding(rc, 'speedRef', { label: 'vel. de saturación', min: 0.2, max: 20, step: 0.1 });
+    if (gpu) ren.addBinding(rc, 'orient', { label: 'orientar formas' });
+    if (gpu) ren.addBinding(rc, 'speedRef', { label: 'vel. de saturación', min: 0.2, max: 20, step: 0.1 });
     ren.addBinding(rc, 'trails', { label: 'estelas' });
     ren.addBinding(rc, 'trailFade', { label: 'persistencia', min: 0.5, max: 0.99, step: 0.005 });
-    ren.addBinding(rc, 'bloom', { label: 'bloom' });
-    ren.addBinding(rc, 'bloomIntensity', { label: 'intensidad', min: 0, max: 4, step: 0.05 });
-    ren.addBinding(rc, 'bloomThreshold', { label: 'umbral', min: 0, max: 3, step: 0.01 });
-    ren.addBinding(rc, 'bloomKnee', { label: 'suavidad', min: 0, max: 1, step: 0.01 });
-    ren.addBinding(rc, 'bloomRadius', { label: 'radio bloom', min: 2, max: 7, step: 1 });
-    ren.addBinding(rc, 'exposure', { label: 'exposición', min: 0.1, max: 4, step: 0.05 });
-    ren.addBinding(rc, 'tonemap', { label: 'tone mapping', options: { ACES: 0, Reinhard: 1, lineal: 2 } });
+    if (gpu) ren.addBinding(rc, 'bloom', { label: 'bloom' });
+    if (gpu) ren.addBinding(rc, 'bloomIntensity', { label: 'intensidad', min: 0, max: 4, step: 0.05 });
+    if (gpu) ren.addBinding(rc, 'bloomThreshold', { label: 'umbral', min: 0, max: 3, step: 0.01 });
+    if (gpu) ren.addBinding(rc, 'bloomKnee', { label: 'suavidad', min: 0, max: 1, step: 0.01 });
+    if (gpu) ren.addBinding(rc, 'bloomRadius', { label: 'radio bloom', min: 2, max: 7, step: 1 });
+    if (gpu) ren.addBinding(rc, 'exposure', { label: 'exposición', min: 0.1, max: 4, step: 0.05 });
+    if (gpu) ren.addBinding(rc, 'tonemap', { label: 'tone mapping', options: { ACES: 0, Reinhard: 1, lineal: 2 } });
     ren.addBinding(rc, 'vignette', { label: 'viñeta', min: 0, max: 1, step: 0.01 });
     ren.addBinding(rc, 'background', { label: 'fondo' });
     ren.on('change', onR);

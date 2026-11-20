@@ -12,6 +12,7 @@ import { mulberry32 } from '../src/rng';
 import { Simulation } from '../src/sim/simulation';
 import { Renderer } from '../src/render/renderer';
 import { Camera } from '../src/camera';
+import { CpuSimulation } from '../src/sim/cpuSimulation';
 
 Object.assign(globalThis, globals);
 
@@ -23,7 +24,7 @@ function check(ok: boolean, msg: string) {
 
 // Cada sección se ejecuta en un subproceso propio: el binding Dawn-node es inestable cuando un mismo
 // proceso encadena muchas operaciones (segfaults nativos no reproducibles en el navegador).
-const SECTIONS = ['compare', 'stability', 'render', 'perf'] as const;
+const SECTIONS = ['compare', 'cpu-vs-gpu', 'stability', 'render', 'perf'] as const;
 type Section = (typeof SECTIONS)[number];
 
 async function orchestrate() {
@@ -122,6 +123,50 @@ async function main(section: Section) {
   check(nan === 0, 'sin NaN');
   check(maxErr < 1e-3 * cfg.rMax, 'posiciones idénticas (salvo redondeo) entre rejilla y fuerza bruta');
   check(speciesDiff === 0, `conversiones de especie idénticas (${speciesDiff} diferencias)`);
+  }
+
+  if (section === 'cpu-vs-gpu') {
+  // ---------------------------------------------------------------- 1b: motor CPU vs motor GPU
+  console.log('\n[1b] Motor CPU (respaldo) vs motor GPU: mismo estado, un paso');
+  const s0 = await sim.readState();
+  const cpu = new CpuSimulation(cfg);
+  cpu.worldW = sim.worldW;
+  cpu.worldH = sim.worldH;
+  cpu.updateGrid();
+  cpu.updateSpecies();
+  cpu.setState(s0.particles, s0.species);
+  cpu.frame = sim.frame;
+  cpu.time = sim.time;
+  cpu.step();
+  sim.setState(s0.particles, s0.species);
+  sim.step();
+  const g = await sim.readState();
+  const N = cfg.numParticles;
+  const order = (p: Float32Array) => Array.from({ length: N }, (_, i) => i).sort((a, c) => p[a * 4] - p[c * 4]);
+  const og = order(g.particles);
+  const oc = order(cpu.particles);
+  let maxErr = 0;
+  let maxVErr = 0;
+  let speciesDiff = 0;
+  for (let k = 0; k < N; k++) {
+    const i = og[k];
+    let best = Infinity;
+    let bestJ = -1;
+    for (let w = Math.max(0, k - 12); w < Math.min(N, k + 13); w++) {
+      const j = oc[w];
+      const d = Math.hypot(g.particles[i * 4] - cpu.particles[j * 4], g.particles[i * 4 + 1] - cpu.particles[j * 4 + 1]);
+      if (d < best) { best = d; bestJ = j; }
+    }
+    maxErr = Math.max(maxErr, best);
+    if (bestJ >= 0) {
+      maxVErr = Math.max(maxVErr, Math.hypot(g.particles[i * 4 + 2] - cpu.particles[bestJ * 4 + 2], g.particles[i * 4 + 3] - cpu.particles[bestJ * 4 + 3]));
+      if (g.species[i] !== cpu.species[bestJ]) speciesDiff++;
+    } else speciesDiff++;
+  }
+  console.log(`  error máx. posición ${maxErr.toExponential(2)} · velocidad ${maxVErr.toExponential(2)} (f32 GPU vs f64 CPU)`);
+  check(maxErr < 1e-3 * cfg.rMax, 'posiciones CPU = GPU (salvo precisión float32)');
+  check(maxVErr < 1e-2 * cfg.rMax, 'velocidades CPU = GPU');
+  check(speciesDiff === 0, `conversiones CPU = GPU (${speciesDiff} diferencias)`);
   }
 
   if (section === 'stability') {

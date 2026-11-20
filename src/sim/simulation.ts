@@ -1,6 +1,7 @@
 import simCode from '../shaders/sim.wgsl?raw';
 import { Config, MAX_CELLS, MAX_SPECIES } from '../config';
 import { spawnParticles } from './spawn';
+import { computeGrid, computeWorld } from './world';
 
 const WG = 256;
 const PARAMS_SIZE = 112; // 28 × 4 bytes (ver struct Params en sim.wgsl)
@@ -111,18 +112,12 @@ export class Simulation {
     if (N > this.capacity) this.allocate(N);
     this.numParticles = N;
 
-    // El mundo se dimensiona para que haya `density` vecinos medios dentro de rMax.
-    const area = (N * Math.PI * cfg.rMax * cfg.rMax) / Math.max(1, cfg.density);
-    let w = Math.sqrt(area * Math.max(0.2, aspect));
-    let h = area / w;
-    const minSide = cfg.rMax * 3.05;
-    w = Math.max(w, minSide);
-    h = Math.max(h, minSide);
-    this.worldW = w;
-    this.worldH = h;
+    const { worldW, worldH } = computeWorld(cfg, aspect);
+    this.worldW = worldW;
+    this.worldH = worldH;
     this.updateGrid();
 
-    const { particles, species } = spawnParticles(cfg, w, h);
+    const { particles, species } = spawnParticles(cfg, worldW, worldH);
     this.setState(particles, species);
     this.frame = 0;
     this.time = 0;
@@ -131,19 +126,7 @@ export class Simulation {
 
   /** Recalcula la rejilla (llamar cuando cambie rMax). Celda >= rMax garantiza que bastan 3×3 celdas. */
   updateGrid(): void {
-    const r = Math.min(this.cfg.rMax, this.worldW / 3, this.worldH / 3);
-    let gw = Math.max(3, Math.floor(this.worldW / r));
-    let gh = Math.max(3, Math.floor(this.worldH / r));
-    if (gw * gh > MAX_CELLS) {
-      const k = Math.sqrt(MAX_CELLS / (gw * gh));
-      gw = Math.max(3, Math.floor(gw * k));
-      gh = Math.max(3, Math.floor(gh * k));
-    }
-    this.gridW = gw;
-    this.gridH = gh;
-    this.cellW = this.worldW / gw;
-    this.cellH = this.worldH / gh;
-    this.effectiveRMax = Math.min(this.cfg.rMax, this.cellW, this.cellH);
+    Object.assign(this, computeGrid(this.cfg.rMax, this.worldW, this.worldH));
   }
 
   get numCells(): number {

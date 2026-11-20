@@ -292,3 +292,97 @@ kbd {
     max-height: 45vh;
   }
 }
+
+/* ---------------- Botones flotantes (útiles sobre todo en móvil) */
+#fab {
+  position: fixed;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 6px;
+  z-index: 5;
+}
+#fab button {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 16px;
+  padding: 0;
+  background: rgba(14, 16, 24, 0.75);
+  backdrop-filter: blur(6px);
+}
+
+/* ---------------- Panel de matrices plegable */
+.matrix-panel .panel-title {
+  cursor: pointer;
+  user-select: none;
+}
+.matrix-panel .chev {
+  display: inline-block;
+  transition: transform 0.2s;
+  color: var(--muted);
+}
+.matrix-panel.collapsed .panel-body {
+  display: none;
+}
+.matrix-panel.collapsed .chev {
+  transform: rotate(-90deg);
+}
+.matrix-panel.collapsed .panel-title {
+  margin-bottom: 0;
+}
+
+/* ---------------- Modo CPU, avisos, ayuda */
+.cpu-badge {
+  color: #ffb35c;
+  font-weight: 600;
+}
+.toast.warn {
+  border-color: rgba(255, 179, 92, 0.5);
+  max-width: min(560px, calc(100vw - 32px));
+  text-align: center;
+  bottom: 70px;
+}
+#help .intro {
+  color: var(--text);
+  margin-bottom: 6px;
+}
+#help .gpu-box {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 179, 92, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 179, 92, 0.06);
+}
+#help .gpu-box h3 {
+  color: #ffb35c;
+  margin-top: 4px;
+}
+#help pre {
+  white-space: pre-wrap;
+  font: 11px/1.5 ui-monospace, monospace;
+  color: var(--muted);
+  margin: 6px 0;
+}
+.noscript {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+@media (max-width: 760px) {
+  .hud {
+    top: 50px;
+    font-size: 10px;
+    max-width: 60vw;
+  }
+  .hud .keys {
+    display: none;
+  }
+  .matrix-panel {
+    bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+}

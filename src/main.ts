@@ -1,25 +1,22 @@
 import './style.css';
 import { Camera } from './camera';
 import { Config, cloneConfig, resizeSpecies } from './config';
-import { initGpu } from './gpu/device';
+import { CpuEngine, Engine, GpuEngine } from './engine';
+import { GpuContext, initGpu } from './gpu/device';
 import { PRESETS } from './presets';
-import { Renderer } from './render/renderer';
 import { randomSeed } from './rng';
-import { Simulation } from './sim/simulation';
 import { Hud, PopulationChart } from './ui/hud';
 import { MatrixEditor } from './ui/matrixEditor';
 import { Panel, PanelHost } from './ui/panel';
 import { configFromHash, downloadBlob } from './ui/storage';
+
+const isSmallScreen = () => window.matchMedia('(max-width: 760px)').matches;
 
 class App implements PanelHost {
   cfg: Config;
   paused = false;
   presetIndex = 0;
 
-  private readonly canvas: HTMLCanvasElement;
-  private readonly context: GPUCanvasContext;
-  private readonly sim: Simulation;
-  private readonly renderer: Renderer;
   private readonly camera = new Camera();
   private readonly hud = new Hud();
   private readonly matrix: MatrixEditor;
@@ -33,47 +30,30 @@ class App implements PanelHost {
   private fps = 60;
   private lastTime = performance.now();
 
-  // ratón
+  // entrada: punteros activos (ratón o dedos)
+  private readonly pointers = new Map<number, { x: number; y: number }>();
   private pointer = { x: 0, y: 0, force: false, pan: false, invert: false };
+  private gesture: { midX: number; midY: number; dist: number } | null = null;
 
-  // timestamps de GPU
-  private readonly querySet?: GPUQuerySet;
-  private readonly queryResolve?: GPUBuffer;
-  private readonly queryRead?: GPUBuffer;
-  private queryPending = false;
-  private simMs: number | null = null;
-  private renderMs: number | null = null;
+  // ajuste automático de rendimiento
+  private perf = { frames: 0, time: 0, adjustments: 0 };
 
   constructor(
-    private readonly device: GPUDevice,
-    private readonly gpuName: string,
-    timestamps: boolean,
+    private readonly canvas: HTMLCanvasElement,
+    private readonly engine: Engine,
     cfg: Config,
   ) {
     this.cfg = cfg;
-    this.canvas = document.querySelector<HTMLCanvasElement>('#view')!;
-    this.context = this.canvas.getContext('webgpu')!;
-    const format = navigator.gpu.getPreferredCanvasFormat();
-    this.context.configure({ device, format, alphaMode: 'opaque' });
-
-    this.sim = new Simulation(device, cfg);
-    this.renderer = new Renderer(device, format, cfg);
-
-    if (timestamps) {
-      this.querySet = device.createQuerySet({ type: 'timestamp', count: 4 });
-      this.queryResolve = device.createBuffer({ size: 32, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC });
-      this.queryRead = device.createBuffer({ size: 32, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
-    }
-
-    // ---- UI
     this.ui = document.querySelector<HTMLElement>('#ui')!;
-    this.matrix = new MatrixEditor(cfg, () => this.sim.updateSpecies());
+    this.matrix = new MatrixEditor(cfg, () => this.engine.sim.updateSpecies());
     this.population = new PopulationChart(cfg);
-    this.matrix.element.appendChild(this.population.element);
+    this.matrix.body.appendChild(this.population.element);
     this.panel = new Panel(this);
     this.ui.append(this.hud.element, this.matrix.element, this.panel.element);
+    if (isSmallScreen()) this.matrix.setCollapsed(true);
 
     this.bindInput();
+    this.bindButtons();
     this.resize();
     new ResizeObserver(() => this.resize()).observe(this.canvas);
     this.reset();
@@ -82,26 +62,40 @@ class App implements PanelHost {
 
   // ------------------------------------------------------------------ PanelHost
 
+  get engineKind(): 'webgpu' | 'cpu' {
+    return this.engine.kind;
+  }
+
+  get maxParticles(): number {
+    return this.engine.maxParticles;
+  }
+
   reset(): void {
-    this.sim.reset(this.canvas.width / Math.max(1, this.canvas.height));
-    this.renderer.updateSpecies();
-    this.camera.fit(this.sim.worldW, this.sim.worldH, this.canvas.width, this.canvas.height);
+    if (this.cfg.numParticles > this.engine.maxParticles) {
+      this.cfg.numParticles = this.engine.maxParticles;
+      this.toast(`Modo CPU: limitado a ${this.engine.maxParticles.toLocaleString('es')} partículas`);
+      this.panel?.refresh();
+    }
+    this.engine.sim.reset(this.canvas.width / Math.max(1, this.canvas.height));
+    this.engine.speciesChanged();
+    this.fitCamera();
     this.population.setConfig(this.cfg);
     this.matrix.setConfig(this.cfg);
+    this.perf.frames = 0;
+    this.perf.time = 0;
   }
 
   speciesChanged(): void {
-    this.sim.updateSpecies();
-    this.renderer.updateSpecies();
+    this.engine.speciesChanged();
     this.matrix.draw();
   }
 
   gridChanged(): void {
-    this.sim.updateGrid();
+    this.engine.sim.updateGrid();
   }
 
   renderChanged(): void {
-    /* el render lee cfg.render cada frame */
+    /* ambos renderers leen cfg.render en cada frame */
   }
 
   setNumSpecies(n: number): void {
@@ -119,28 +113,29 @@ class App implements PanelHost {
 
   togglePause(): void {
     this.paused = !this.paused;
+    document.querySelector('#btn-pause')!.textContent = this.paused ? '▶' : '⏸';
   }
 
   stepOnce(): void {
-    this.paused = true;
+    if (!this.paused) this.togglePause();
     this.pendingStep = true;
   }
 
   fitCamera(): void {
-    this.camera.fit(this.sim.worldW, this.sim.worldH, this.canvas.width, this.canvas.height);
+    this.camera.fit(this.engine.sim.worldW, this.engine.sim.worldH, this.canvas.width, this.canvas.height);
   }
 
   screenshot(): void {
     this.wantScreenshot = true;
   }
 
-  toast(msg: string): void {
+  toast(msg: string, ms = 2200): void {
     const el = document.createElement('div');
     el.className = 'toast';
     el.textContent = msg;
     document.body.appendChild(el);
-    setTimeout(() => el.classList.add('out'), 1800);
-    setTimeout(() => el.remove(), 2400);
+    setTimeout(() => el.classList.add('out'), ms);
+    setTimeout(() => el.remove(), ms + 600);
   }
 
   // ------------------------------------------------------------------ bucle
@@ -154,84 +149,73 @@ class App implements PanelHost {
     this.applyDrift(elapsed);
     this.updateMouse();
 
-    const ts = this.querySet && !this.queryPending;
     const readPop = this.frameCount % 8 === 0;
     const steps = this.paused ? (this.pendingStep ? 1 : 0) : this.cfg.stepsPerFrame;
     this.pendingStep = false;
-    for (let k = 0; k < steps; k++) {
-      const tsw = ts && k === 0 ? { querySet: this.querySet!, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } : undefined;
-      this.sim.step(tsw, readPop && k === steps - 1);
-    }
-
-    this.renderer.render(
-      this.sim,
-      this.camera,
-      this.context.getCurrentTexture().createView(),
-      ts ? { querySet: this.querySet!, beginIndex: 2, endIndex: 3 } : undefined,
-      now / 1000,
-    );
-    if (ts) this.readTimestamps(steps > 0);
+    this.engine.frame(steps, readPop, this.camera, now / 1000);
 
     if (this.wantScreenshot) {
       this.wantScreenshot = false;
       this.canvas.toBlob((b) => b && downloadBlob(b, `particle-life-${Date.now()}.png`), 'image/png');
     }
-
-    if (readPop) this.population.push(this.sim.populations);
+    if (readPop) this.population.push(this.engine.sim.populations);
     if (this.frameCount % 10 === 0) this.updateHud();
+    this.autoTune(elapsed);
     requestAnimationFrame(this.loop);
   };
 
-  private readTimestamps(simWritten: boolean): void {
-    const enc = this.device.createCommandEncoder();
-    enc.resolveQuerySet(this.querySet!, 0, 4, this.queryResolve!, 0);
-    enc.copyBufferToBuffer(this.queryResolve!, 0, this.queryRead!, 0, 32);
-    this.device.queue.submit([enc.finish()]);
-    this.queryPending = true;
-    this.queryRead!.mapAsync(GPUMapMode.READ).then(
-      () => {
-        const t = new BigInt64Array(this.queryRead!.getMappedRange());
-        const ms = (a: bigint, b: bigint) => Number(b - a) / 1e6;
-        const smooth = (prev: number | null, v: number) => (v < 0 || v > 1000 ? prev : prev === null ? v : prev * 0.9 + v * 0.1);
-        if (simWritten) this.simMs = smooth(this.simMs, ms(t[0], t[1]));
-        this.renderMs = smooth(this.renderMs, ms(t[2], t[3]));
-        this.queryRead!.unmap();
-        this.queryPending = false;
-      },
-      () => (this.queryPending = false),
-    );
+  /** Si tras arrancar va claramente lento, reduce partículas automáticamente (máx. 3 veces). */
+  private autoTune(elapsed: number): void {
+    if (this.paused || document.visibilityState !== 'visible' || this.perf.adjustments >= 3) return;
+    const p = this.perf;
+    p.frames++;
+    if (p.frames <= 45) return; // ignorar el arranque
+    p.time += elapsed;
+    if (p.frames < 45 + 150) return;
+    const fps = 150 / p.time;
+    const minN = this.engine.kind === 'cpu' ? 2000 : 10000;
+    p.frames = -1e9; // sólo una medición por reinicio
+    if (fps < 26 && this.cfg.numParticles > minN) {
+      const before = this.cfg.numParticles;
+      this.cfg.numParticles = Math.max(minN, Math.round((before * 0.55) / 1000) * 1000);
+      p.adjustments++;
+      this.toast(`Rendimiento bajo (${fps.toFixed(0)} fps): ${before.toLocaleString('es')} → ${this.cfg.numParticles.toLocaleString('es')} partículas`, 3500);
+      this.reset();
+      this.panel.refresh();
+    }
   }
 
   private updateHud(): void {
-    const s = this.sim;
+    const s = this.engine.sim;
     const neighbors = (s.numParticles * Math.PI * s.effectiveRMax ** 2) / (s.worldW * s.worldH);
     this.hud.update({
       fps: this.fps,
-      simMs: this.simMs === null ? null : this.simMs * Math.max(1, this.cfg.stepsPerFrame),
-      renderMs: this.renderMs,
+      simMs: this.engine.simMs,
+      renderMs: this.engine.renderMs,
       particles: s.numParticles,
       grid: `${s.gridW}×${s.gridH}`,
       neighbors,
       zoom: this.camera.zoom,
       paused: this.paused,
-      gpu: this.gpuName,
+      gpu: this.engine.label,
       algorithm: this.cfg.algorithm,
+      cpu: this.engine.kind === 'cpu',
     });
   }
 
   /** Deriva: paseo aleatorio lento de la matriz de atracción → el ecosistema evoluciona solo. */
-  private driftPhase: number[] = [];
+  private driftVel: number[] = [];
   private applyDrift(dt: number): void {
     const d = this.cfg.drift;
     if (!d.enabled || this.paused) return;
     const m = this.cfg.attraction;
-    if (this.driftPhase.length !== m.length) this.driftPhase = m.map(() => Math.random() * 2 - 1);
+    if (this.driftVel.length !== m.length) this.driftVel = m.map(() => Math.random() * 2 - 1);
     for (let i = 0; i < m.length; i++) {
       // velocidad con inercia (ruido suavizado) para cambios orgánicos
-      this.driftPhase[i] = this.driftPhase[i] * 0.98 + (Math.random() * 2 - 1) * 0.2;
-      m[i] = Math.max(-1, Math.min(1, m[i] + this.driftPhase[i] * d.rate * dt * 0.5));
+      this.driftVel[i] = this.driftVel[i] * 0.98 + (Math.random() * 2 - 1) * 0.2;
+      m[i] = Math.max(-1, Math.min(1, m[i] + this.driftVel[i] * d.rate * dt * 0.5));
     }
-    this.sim.updateSpecies();
+    this.engine.sim.updateSpecies();
     if (this.frameCount % 3 === 0) this.matrix.draw();
   }
 
@@ -245,8 +229,8 @@ class App implements PanelHost {
     const firstFit = this.canvas.width <= 300;
     this.canvas.width = w;
     this.canvas.height = h;
-    this.renderer.resize(w, h);
-    if (firstFit && this.sim.numParticles) this.fitCamera();
+    this.engine.resize(w, h);
+    if (firstFit && this.engine.sim.numParticles) this.fitCamera();
   }
 
   private toCanvas(e: { clientX: number; clientY: number }): [number, number] {
@@ -256,22 +240,40 @@ class App implements PanelHost {
 
   private updateMouse(): void {
     const p = this.pointer;
+    const sim = this.engine.sim;
     if (!p.force) {
-      this.sim.mouse.strength = 0;
+      sim.mouse.strength = 0;
       return;
     }
-    const [wx, wy] = this.camera.screenToWorld(p.x, p.y, this.canvas.width, this.canvas.height, this.sim.worldW, this.sim.worldH);
-    this.sim.mouse.x = wx;
-    this.sim.mouse.y = wy;
-    this.sim.mouse.strength = this.cfg.mouse.strength * (p.invert ? -1 : 1);
+    const [wx, wy] = this.camera.screenToWorld(p.x, p.y, this.canvas.width, this.canvas.height, sim.worldW, sim.worldH);
+    sim.mouse.x = wx;
+    sim.mouse.y = wy;
+    sim.mouse.strength = this.cfg.mouse.strength * (p.invert ? -1 : 1);
+  }
+
+  private gestureFrom(): { midX: number; midY: number; dist: number } {
+    const [a, b] = [...this.pointers.values()];
+    return { midX: (a.x + b.x) / 2, midY: (a.y + b.y) / 2, dist: Math.hypot(a.x - b.x, a.y - b.y) };
   }
 
   private bindInput(): void {
     const c = this.canvas;
+    const sim = () => this.engine.sim;
     c.addEventListener('contextmenu', (e) => e.preventDefault());
     c.addEventListener('pointerdown', (e) => {
       c.setPointerCapture(e.pointerId);
-      [this.pointer.x, this.pointer.y] = this.toCanvas(e);
+      const [x, y] = this.toCanvas(e);
+      this.pointers.set(e.pointerId, { x, y });
+      if (this.pointers.size === 2) {
+        // dos dedos: desplazar + pellizcar para zoom
+        this.pointer.force = false;
+        this.pointer.pan = false;
+        this.gesture = this.gestureFrom();
+        return;
+      }
+      if (this.pointers.size > 2) return;
+      this.pointer.x = x;
+      this.pointer.y = y;
       if (e.button === 0 && !e.altKey) {
         this.pointer.force = true;
         this.pointer.invert = e.shiftKey;
@@ -279,14 +281,26 @@ class App implements PanelHost {
     });
     c.addEventListener('pointermove', (e) => {
       const [x, y] = this.toCanvas(e);
-      if (this.pointer.pan) this.camera.pan(x - this.pointer.x, y - this.pointer.y, this.sim.worldW, this.sim.worldH);
+      if (this.pointers.has(e.pointerId)) this.pointers.set(e.pointerId, { x, y });
+      if (this.gesture && this.pointers.size >= 2) {
+        const g = this.gestureFrom();
+        this.camera.pan(g.midX - this.gesture.midX, g.midY - this.gesture.midY, sim().worldW, sim().worldH);
+        if (this.gesture.dist > 10) this.camera.zoomAt(g.dist / this.gesture.dist, g.midX, g.midY, c.width, c.height);
+        this.gesture = g;
+        return;
+      }
+      if (this.pointer.pan) this.camera.pan(x - this.pointer.x, y - this.pointer.y, sim().worldW, sim().worldH);
       this.pointer.x = x;
       this.pointer.y = y;
       this.pointer.invert = e.shiftKey;
     });
-    const end = () => {
-      this.pointer.force = false;
-      this.pointer.pan = false;
+    const end = (e: PointerEvent) => {
+      this.pointers.delete(e.pointerId);
+      if (this.pointers.size < 2) this.gesture = null;
+      if (this.pointers.size === 0) {
+        this.pointer.force = false;
+        this.pointer.pan = false;
+      }
     };
     c.addEventListener('pointerup', end);
     c.addEventListener('pointercancel', end);
@@ -331,55 +345,109 @@ class App implements PanelHost {
           this.panel.refresh();
           break;
         case 'h':
-          this.ui.classList.toggle('hidden');
+          this.toggleUi();
           break;
         case 'f':
-          if (document.fullscreenElement) document.exitFullscreen();
-          else document.documentElement.requestFullscreen().catch(() => {});
+          this.toggleFullscreen();
           break;
         case 'p':
           this.screenshot();
           break;
         case '?':
-          document.querySelector('#help')!.classList.toggle('visible');
+          toggleHelp();
           break;
         case 'escape':
-          document.querySelector('#help')!.classList.remove('visible');
+          toggleHelp(false);
           break;
         default:
-          if (/^[1-9]$/.test(e.key)) {
-            const p = PRESETS[Number(e.key) - 1];
-            if (p) {
-              this.presetIndex = Number(e.key) - 1;
-              this.applyConfig(p.build({ numParticles: this.cfg.numParticles }));
-              this.toast(`Preset: ${p.name}`);
-            }
-          }
+          if (/^[1-9]$/.test(e.key)) this.loadPreset(Number(e.key) - 1);
       }
     });
   }
+
+  private loadPreset(i: number): void {
+    const p = PRESETS[i];
+    if (!p) return;
+    this.presetIndex = i;
+    this.applyConfig(p.build({ numParticles: this.cfg.numParticles }));
+    this.toast(`Preset: ${p.name}`);
+  }
+
+  private toggleUi(): void {
+    this.ui.classList.toggle('hidden');
+  }
+
+  private toggleFullscreen(): void {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen?.().catch(() => {});
+  }
+
+  /** Botones flotantes (imprescindibles en móvil, donde no hay teclado). */
+  private bindButtons(): void {
+    const on = (id: string, f: () => void) => document.querySelector(`#${id}`)!.addEventListener('click', f);
+    on('btn-ui', () => this.toggleUi());
+    on('btn-pause', () => this.togglePause());
+    on('btn-help', () => toggleHelp());
+    on('btn-full', () => this.toggleFullscreen());
+    on('help-close', () => toggleHelp(false));
+  }
+}
+
+function toggleHelp(force?: boolean): void {
+  document.querySelector('#help')!.classList.toggle('visible', force);
 }
 
 // ---------------------------------------------------------------------- arranque
 
 async function start() {
+  const canvas = document.querySelector<HTMLCanvasElement>('#view')!;
   const errorEl = document.querySelector<HTMLElement>('#error')!;
+  const params = new URLSearchParams(location.search);
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  let gpu: GpuContext | null = null;
+  let gpuProblem: string | null = null;
   try {
-    const { device, adapterName, timestamps } = await initGpu();
-    device.lost.then((info) => {
+    if (params.has('cpu')) throw new Error('Modo CPU forzado con ?cpu en la URL.');
+    gpu = await initGpu();
+    gpu.device.lost.then((info) => {
       if (info.reason !== 'destroyed') {
-        errorEl.textContent = `Se perdió el dispositivo GPU: ${info.message}. Recarga la página.`;
+        errorEl.textContent = `Se perdió el dispositivo GPU: ${info.message}\nRecarga la página.`;
         errorEl.classList.add('visible');
       }
     });
-    device.addEventListener('uncapturederror', (e) => console.error((e as GPUUncapturedErrorEvent).error.message));
-    const fromUrl = await configFromHash();
-    const cfg = fromUrl ?? PRESETS[0].build({ numParticles: 80_000 });
-    new App(device, adapterName, timestamps, cfg);
+    gpu.device.addEventListener('uncapturederror', (e) => console.error((e as GPUUncapturedErrorEvent).error.message));
+  } catch (e) {
+    gpuProblem = (e as Error).message;
+    console.warn('WebGPU no disponible, usando modo CPU:', gpuProblem);
+  }
+
+  const fromUrl = await configFromHash();
+  const defaultN = gpu ? (mobile ? 30_000 : 80_000) : 6000;
+  const cfg = fromUrl ?? PRESETS[0].build({ numParticles: defaultN });
+
+  try {
+    const engine: Engine = gpu
+      ? new GpuEngine(gpu.device, canvas, cfg, gpu.adapterName, gpu.timestamps)
+      : new CpuEngine(canvas, cfg);
+    new App(canvas, engine, cfg);
   } catch (e) {
     errorEl.textContent = (e as Error).message;
     errorEl.classList.add('visible');
     console.error(e);
+    return;
+  }
+
+  if (gpuProblem) {
+    const note = document.querySelector<HTMLElement>('#gpu-note')!;
+    note.textContent = gpuProblem;
+    note.parentElement!.hidden = false;
+    const t = document.createElement('div');
+    t.className = 'toast warn';
+    t.innerHTML = 'Sin WebGPU: funcionando en <b>modo CPU</b> (menos partículas). Pulsa <b>?</b> para ver cómo activarlo.';
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('out'), 7000);
+    setTimeout(() => t.remove(), 7600);
   }
 }
 
