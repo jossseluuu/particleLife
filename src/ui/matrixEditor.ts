@@ -1,4 +1,5 @@
-import { Config, SHAPES } from '../config';
+import { Config } from '../config';
+import { drawShape } from './shapes';
 import { MATRIX_PATTERNS, mutate } from '../presets';
 import { mulberry32, randomSeed } from '../rng';
 
@@ -41,7 +42,8 @@ export class MatrixEditor {
     this.element = document.createElement('div');
     this.element.className = 'matrix-panel panel';
     this.element.innerHTML = `
-      <div class="panel-title">Matrices de interacción</div>
+      <div class="panel-title" title="Plegar / desplegar">Matrices de interacción <span class="chev">▾</span></div>
+      <div class="panel-body">
       <div class="tabs"></div>
       <canvas class="matrix-canvas"></canvas>
       <div class="matrix-info">&nbsp;</div>
@@ -54,6 +56,7 @@ export class MatrixEditor {
         <button data-act="sym" title="Hacer simétrica">Simetrizar</button>
         <button data-act="neg" title="Invertir signo">±</button>
         <button data-act="zero" title="Restablecer">Limpiar</button>
+      </div>
       </div>`;
     const tabsEl = this.element.querySelector('.tabs')!;
     for (const s of SPECS) {
@@ -80,8 +83,18 @@ export class MatrixEditor {
       else if (act === 'neg') this.transform((v) => (this.spec.key === 'attraction' ? -v : this.spec.max + this.spec.min - v));
       else if (act === 'zero') this.transform(() => this.spec.neutral);
     });
+    this.element.querySelector(".panel-title")!.addEventListener("click", () => this.setCollapsed(!this.element.classList.contains("collapsed")));
     this.bindPointer();
     this.select(SPECS[0]);
+  }
+
+  setCollapsed(collapsed: boolean): void {
+    this.element.classList.toggle("collapsed", collapsed);
+  }
+
+  /** El contenedor donde otros componentes (p. ej. la gráfica de población) pueden añadirse. */
+  get body(): HTMLElement {
+    return this.element.querySelector(".panel-body")!;
   }
 
   setConfig(cfg: Config): void {
@@ -304,43 +317,8 @@ export class MatrixEditor {
   }
 
   private drawShape(x: number, y: number, r: number, i: number): void {
-    const ctx = this.ctx;
     const sp = this.cfg.species[i];
-    ctx.fillStyle = sp.color;
-    ctx.strokeStyle = sp.color;
-    ctx.beginPath();
-    const poly = (n: number, rot: number, rr = r) => {
-      for (let k = 0; k < n; k++) {
-        const a = rot + (k / n) * Math.PI * 2;
-        ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
-      }
-      ctx.closePath();
-    };
-    switch (SHAPES[sp.shape]) {
-      case 'anillo':
-        ctx.lineWidth = r * 0.45;
-        ctx.arc(x, y, r * 0.75, 0, Math.PI * 2);
-        ctx.stroke();
-        return;
-      case 'triángulo': poly(3, -Math.PI / 2); break;
-      case 'cuadrado': poly(4, Math.PI / 4, r * 1.15); break;
-      case 'rombo': poly(4, 0); break;
-      case 'hexágono': poly(6, 0); break;
-      case 'estrella':
-        for (let k = 0; k < 10; k++) {
-          const a = -Math.PI / 2 + (k / 10) * Math.PI * 2;
-          const rr = k % 2 ? r * 0.45 : r;
-          ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
-        }
-        ctx.closePath();
-        break;
-      case 'cruz':
-        ctx.rect(x - r, y - r * 0.3, 2 * r, r * 0.6);
-        ctx.rect(x - r * 0.3, y - r, r * 0.6, 2 * r);
-        break;
-      default:
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-    }
-    ctx.fill();
+    this.ctx.fillStyle = sp.color;
+    drawShape(this.ctx, sp.shape, x, y, r);
   }
 }

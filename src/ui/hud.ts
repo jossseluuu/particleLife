@@ -11,6 +11,7 @@ export interface HudStats {
   paused: boolean;
   gpu: string;
   algorithm: string;
+  cpu: boolean;
 }
 
 export class Hud {
@@ -24,8 +25,8 @@ export class Hud {
   update(s: HudStats): void {
     const ms = (v: number | null) => (v === null ? '—' : `${v.toFixed(2)} ms`);
     this.element.innerHTML = `
-      <div><b>${s.fps.toFixed(0)}</b> fps${s.paused ? ' · <span class="paused">EN PAUSA</span>' : ''}</div>
-      <div>sim GPU ${ms(s.simMs)} · render ${ms(s.renderMs)}</div>
+      <div><b>${s.fps.toFixed(0)}</b> fps${s.paused ? ' · <span class="paused">EN PAUSA</span>' : ''}${s.cpu ? ' · <span class="cpu-badge">MODO CPU</span>' : ''}</div>
+      <div>sim ${s.cpu ? 'CPU' : 'GPU'} ${ms(s.simMs)} · render ${ms(s.renderMs)}</div>
       <div>${s.particles.toLocaleString('es')} partículas · ${s.algorithm}</div>
       <div>rejilla ${s.grid} · ~${s.neighbors.toFixed(0)} vecinos · zoom ×${s.zoom.toFixed(1)}</div>
       <div class="gpu">${s.gpu}</div>

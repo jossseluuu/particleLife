@@ -2,26 +2,52 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Particle Life</title>
+    <meta name="description" content="Ecosistema 2D de miles de partículas que se atraen y repelen según una matriz de interacción. Simulación y render en GPU con WebGPU, totalmente ajustable en tiempo real." />
+    <meta name="theme-color" content="#05060a" />
+    <meta property="og:title" content="Particle Life · ecosistema de partículas" />
+    <meta property="og:description" content="Reglas simples, comportamientos complejos: células, serpientes, bandadas, vórtices y ondas espirales en tu navegador." />
+    <meta property="og:type" content="website" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='10' cy='12' r='5' fill='%23ff3b5c'/><circle cx='22' cy='10' r='4' fill='%23ffd23b'/><circle cx='17' cy='22' r='6' fill='%233bb4ff'/></svg>" />
   </head>
   <body>
-    <canvas id="view"></canvas>
+    <canvas id="view" aria-label="Simulación de partículas"></canvas>
     <div id="ui"></div>
+    <div id="fab">
+      <button id="btn-pause" title="Pausa / continuar (Espacio)" aria-label="Pausa">⏸</button>
+      <button id="btn-ui" title="Mostrar / ocultar interfaz (H)" aria-label="Interfaz">☰</button>
+      <button id="btn-full" title="Pantalla completa (F)" aria-label="Pantalla completa">⛶</button>
+      <button id="btn-help" title="Ayuda (?)" aria-label="Ayuda">?</button>
+    </div>
     <div id="error"></div>
-    <div id="help">
+    <noscript><div class="noscript">Esta experiencia necesita JavaScript activado.</div></noscript>
+    <div id="help" role="dialog" aria-label="Ayuda">
       <h2>Particle Life · ayuda</h2>
+      <p class="intro">
+        Cada color es una especie. Cada especie se siente atraída o repelida por las demás según la
+        <b>matriz de atracción</b> (abajo a la izquierda). De esas reglas tan simples emergen estructuras vivas.
+        Prueba los presets, toca la matriz o arrastra con el ratón para "remover" la sopa.
+      </p>
+      <div class="gpu-box" hidden>
+        <h3>Estás en modo CPU</h3>
+        <p>Tu navegador no ofrece WebGPU, así que la simulación corre en el procesador (menos partículas y sin bloom). Motivo:</p>
+        <pre id="gpu-note"></pre>
+        <p>Con Chrome o Edge actualizados y la <b>aceleración por hardware activada</b> (Configuración → Sistema) tendrás el modo GPU completo.</p>
+      </div>
       <div class="cols">
         <div>
           <h3>Ratón</h3>
           <p><kbd>clic</kbd> atraer partículas · <kbd>Shift</kbd>+<kbd>clic</kbd> repeler</p>
           <p><kbd>clic derecho</kbd> / <kbd>Alt</kbd>+<kbd>arrastrar</kbd> desplazar · <kbd>rueda</kbd> zoom</p>
           <p><kbd>doble clic</kbd> encuadrar el mundo</p>
+          <h3>Pantalla táctil</h3>
+          <p><kbd>1 dedo</kbd> atraer · <kbd>2 dedos</kbd> desplazar y pellizcar para zoom</p>
+          <p>Botones de abajo a la derecha: pausa, interfaz, pantalla completa y ayuda</p>
           <h3>Editor de matrices</h3>
           <p><kbd>arrastrar ↕</kbd> ajustar · <kbd>rueda</kbd> paso fino</p>
           <p><kbd>clic derecho</kbd> neutro · <kbd>doble clic</kbd> aleatorio</p>
-          <p><kbd>Shift</kbd> editar (a,b) y (b,a) a la vez</p>
+          <p><kbd>Shift</kbd> editar (a,b) y (b,a) a la vez · clic en el título para plegar</p>
         </div>
         <div>
           <h3>Teclado</h3>
@@ -33,9 +59,10 @@
           <p>Matrices <b>asimétricas</b> → persecuciones y estructuras vivas.</p>
           <p>Conversión cíclica → ondas espirales tipo piedra-papel-tijera.</p>
           <p>Propulsión + alineamiento → bandadas. Giro → vórtices.</p>
+          <p>"Guardar / compartir" genera un enlace con tu mundo exacto.</p>
         </div>
       </div>
-      <p class="close">Pulsa <kbd>?</kbd> o <kbd>Esc</kbd> para cerrar</p>
+      <p class="close"><button id="help-close">Cerrar</button> · o pulsa <kbd>Esc</kbd></p>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
