@@ -57,7 +57,27 @@ export function downloadJson(cfg: Config, name = 'particle-life.json'): void {
   downloadBlob(blob, name);
 }
 
-export function downloadBlob(blob: Blob, name: string): void {
+type DownloadsApi = { save(req: { filename: string; data: Blob }): Promise<unknown> };
+type ClaudeViewer = { use(name: string): Promise<unknown> };
+
+/** ¿Se está ejecutando dentro del visor de Artifacts de claude.ai? */
+export function inArtifactViewer(): boolean {
+  return typeof (window as unknown as { claude?: ClaudeViewer }).claude?.use === 'function';
+}
+
+/**
+ * Ofrece un archivo al usuario. Dentro del visor de Artifacts las descargas directas están
+ * bloqueadas, así que se usa su capacidad `downloads` (el visor pide confirmación).
+ */
+export async function downloadBlob(blob: Blob, name: string): Promise<void> {
+  if (inArtifactViewer()) {
+    const viewer = (window as unknown as { claude: ClaudeViewer }).claude;
+    const dl = (await viewer.use('downloads').catch(() => null)) as DownloadsApi | null;
+    if (dl) {
+      await dl.save({ filename: name, data: blob }).catch((e) => console.warn('Descarga no realizada:', e?.code ?? e));
+      return;
+    }
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = name;
@@ -65,8 +85,9 @@ export function downloadBlob(blob: Blob, name: string): void {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+/** Abre un selector de archivo; rechaza si el JSON no es una configuración válida. */
 export function pickJsonFile(): Promise<Config | null> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json,application/json';
@@ -75,9 +96,8 @@ export function pickJsonFile(): Promise<Config | null> {
       if (!file) return resolve(null);
       try {
         resolve(normalizeConfig(JSON.parse(await file.text())));
-      } catch (e) {
-        alert('El archivo no es una configuración válida.');
-        resolve(null);
+      } catch {
+        reject(new Error('El archivo no es una configuración válida.'));
       }
     };
     input.click();

@@ -13,7 +13,8 @@
     "test": "vite-node test/unit.ts",
     "test:gpu": "vite-node test/validate.ts",
     "test:browser": "node test/browser.mjs http://localhost:5173/",
-    "test:all": "npm run typecheck && npm test && npm run test:gpu"
+    "test:all": "npm run typecheck && npm test && npm run test:gpu",
+    "build:artifact": "npm run build:single && node scripts/build-artifact.mjs"
   },
   "dependencies": {
     "tweakpane": "^4.0.5"
