@@ -23,7 +23,8 @@ export interface SpeciesConfig {
   pulseFreq: number; // frecuencia de la respiración (Hz de simulación)
 }
 
-export type SpawnMode = 'aleatorio' | 'disco' | 'anillo' | 'espiral' | 'franjas' | 'cúmulos' | 'big bang';
+export const SPAWN_MODES = ['aleatorio', 'disco', 'anillo', 'espiral', 'franjas', 'cúmulos', 'big bang'] as const;
+export type SpawnMode = (typeof SPAWN_MODES)[number];
 export type Algorithm = 'rejilla' | 'fuerza bruta';
 export type ColorMode = 0 | 1 | 2 | 3 | 4; // especie, velocidad, especie×velocidad, dirección, densidad aparente
 export type BlendMode = 'aditivo' | 'alfa';

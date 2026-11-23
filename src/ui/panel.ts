@@ -1,5 +1,6 @@
 import { Pane } from 'tweakpane';
-import { Config, MAX_SPECIES, SHAPES, hslToHex, SpawnMode } from '../config';
+import { Config, SHAPES, hslToHex } from '../config';
+import { bindOpts as P } from '../params';
 import { PRESETS } from '../presets';
 import { mulberry32, randomSeed } from '../rng';
 import { deleteLocal, downloadJson, inArtifactViewer, listSaved, pickJsonFile, saveLocal, shareUrl } from './storage';
@@ -24,8 +25,6 @@ export interface PanelHost {
 }
 
 type ChangeEv = { last: boolean };
-
-const SPAWNS: SpawnMode[] = ['aleatorio', 'disco', 'anillo', 'espiral', 'franjas', 'cúmulos', 'big bang'];
 
 export class Panel {
   private pane!: Pane;
@@ -85,20 +84,20 @@ export class Panel {
         host.toast(`Preset: ${PRESETS[ev.value].name}`);
       });
     eco
-      .addBinding(cfg, 'numParticles', { label: 'partículas', min: 1000, max: host.maxParticles, step: 1000 })
+      .addBinding(cfg, 'numParticles', { ...P('numParticles'), max: host.maxParticles })
       .on('change', (ev: ChangeEv) => ev.last && host.reset());
     // proxy: el nº de especies sólo se aplica al soltar el slider (cambia el tamaño de las matrices)
     const speciesState = { n: cfg.numSpecies };
     eco
-      .addBinding(speciesState, 'n', { label: 'especies', min: 1, max: MAX_SPECIES, step: 1 })
+      .addBinding(speciesState, 'n', P('numSpecies'))
       .on('change', (ev: ChangeEv & { value: number }) => ev.last && ev.value !== host.cfg.numSpecies && host.setNumSpecies(ev.value));
     eco
-      .addBinding(cfg, 'density', { label: 'densidad', min: 4, max: 120, step: 1 })
+      .addBinding(cfg, 'density', P('density'))
       .on('change', (ev: ChangeEv) => ev.last && host.reset());
     eco
-      .addBinding(cfg, 'spawn', { label: 'aparición', options: Object.fromEntries(SPAWNS.map((s) => [s, s])) })
+      .addBinding(cfg, 'spawn', P('spawn'))
       .on('change', () => host.reset());
-    eco.addBinding(cfg, 'seed', { label: 'semilla', step: 1, format: (v: number) => v.toFixed(0) });
+    eco.addBinding(cfg, 'seed', { ...P('seed'), format: (v: number) => v.toFixed(0) });
     eco.addButton({ title: 'Reiniciar posiciones (N)' }).on('click', () => host.reset());
     eco.addButton({ title: 'Nueva semilla + reiniciar' }).on('click', () => {
       cfg.seed = randomSeed();
@@ -110,32 +109,29 @@ export class Panel {
 
     // ------------------------------------------------------------ Física
     const phys = pane.addFolder({ title: 'Física', expanded: false });
-    phys.addBinding(cfg, 'rMax', { label: 'radio máx.', min: 8, max: 150, step: 1 }).on('change', () => host.gridChanged());
-    phys.addBinding(cfg, 'beta', { label: 'β (núcleo)', min: 0.05, max: 0.9, step: 0.01 });
-    phys.addBinding(cfg, 'repulsion', { label: 'repulsión', min: 0, max: 5, step: 0.05 });
-    phys.addBinding(cfg, 'forceFactor', { label: 'fuerza', min: 0.5, max: 40, step: 0.5 });
-    phys.addBinding(cfg, 'frictionHalfLife', { label: 'semivida rozam.', min: 0.005, max: 1, step: 0.005 });
-    phys.addBinding(cfg, 'dt', { label: 'dt', min: 0.002, max: 0.05, step: 0.001 });
-    phys.addBinding(cfg, 'maxSpeed', { label: 'vel. máx (rMax/s)', min: 1, max: 80, step: 1 });
-    phys.addBinding(cfg, 'stepsPerFrame', { label: 'pasos / frame', min: 1, max: 8, step: 1 });
-    phys.addBinding(cfg, 'algorithm', {
-      label: 'algoritmo',
-      options: { 'rejilla O(N)': 'rejilla', 'fuerza bruta O(N²)': 'fuerza bruta' },
-    }).on('change', (ev) => {
+    phys.addBinding(cfg, 'rMax', P('rMax')).on('change', () => host.gridChanged());
+    phys.addBinding(cfg, 'beta', P('beta'));
+    phys.addBinding(cfg, 'repulsion', P('repulsion'));
+    phys.addBinding(cfg, 'forceFactor', P('forceFactor'));
+    phys.addBinding(cfg, 'frictionHalfLife', P('frictionHalfLife'));
+    phys.addBinding(cfg, 'dt', P('dt'));
+    phys.addBinding(cfg, 'maxSpeed', P('maxSpeed'));
+    phys.addBinding(cfg, 'stepsPerFrame', P('stepsPerFrame'));
+    phys.addBinding(cfg, 'algorithm', P('algorithm')).on('change', (ev) => {
       if (ev.value === 'fuerza bruta' && cfg.numParticles > 30000)
         host.toast('Aviso: la fuerza bruta con muchas partículas será muy lenta');
     });
 
     // ------------------------------------------------------------ Conversión
     const conv = pane.addFolder({ title: 'Conversión / depredación', expanded: false });
-    conv.addBinding(cfg, 'conversionEnabled', { label: 'activa' });
-    conv.addBinding(cfg, 'conversionRadius', { label: 'radio contacto', min: 0.05, max: 1, step: 0.01 });
+    conv.addBinding(cfg, 'conversionEnabled', P('conversionEnabled'));
+    conv.addBinding(cfg, 'conversionRadius', P('conversionRadius'));
     conv.addBlade({ view: 'text', label: 'ayuda', parse: (v: string) => v, value: 'edita la pestaña "Conversión"' });
 
     // ------------------------------------------------------------ Evolución
     const evo = pane.addFolder({ title: 'Evolución de la matriz', expanded: false });
-    evo.addBinding(cfg.drift, 'enabled', { label: 'deriva continua' });
-    evo.addBinding(cfg.drift, 'rate', { label: 'velocidad', min: 0.01, max: 1, step: 0.01 });
+    evo.addBinding(cfg.drift, 'enabled', P('drift.enabled'));
+    evo.addBinding(cfg.drift, 'rate', P('drift.rate'));
 
     // ------------------------------------------------------------ Especies
     this.buildSpecies(pane);
@@ -145,36 +141,33 @@ export class Panel {
     const ren = pane.addFolder({ title: 'Render', expanded: false });
     const onR = () => host.renderChanged();
     // Color por velocidad, orientación, bloom y tone mapping sólo existen en el render WebGPU.
-    if (gpu) ren.addBinding(rc, 'colorMode', {
-      label: 'color',
-      options: { especie: 0, velocidad: 1, 'especie × velocidad': 2, dirección: 3, 'degradado especies': 4 },
-    });
-    ren.addBinding(rc, 'blend', { label: 'mezcla', options: { aditiva: 'aditivo', alfa: 'alfa' } });
-    ren.addBinding(rc, 'pointSize', { label: 'tamaño', min: 0.02, max: 0.8, step: 0.01 });
-    ren.addBinding(rc, 'minPx', { label: 'tamaño mín. px', min: 0.5, max: 6, step: 0.1 });
-    ren.addBinding(rc, 'softness', { label: 'halo', min: 0, max: 2, step: 0.05 });
-    ren.addBinding(rc, 'brightness', { label: 'brillo', min: 0.05, max: 4, step: 0.05 });
-    if (gpu) ren.addBinding(rc, 'orient', { label: 'orientar formas' });
-    if (gpu) ren.addBinding(rc, 'speedRef', { label: 'vel. de saturación', min: 0.2, max: 20, step: 0.1 });
-    ren.addBinding(rc, 'trails', { label: 'estelas' });
-    ren.addBinding(rc, 'trailFade', { label: 'persistencia', min: 0.5, max: 0.99, step: 0.005 });
-    if (gpu) ren.addBinding(rc, 'bloom', { label: 'bloom' });
-    if (gpu) ren.addBinding(rc, 'bloomIntensity', { label: 'intensidad', min: 0, max: 4, step: 0.05 });
-    if (gpu) ren.addBinding(rc, 'bloomThreshold', { label: 'umbral', min: 0, max: 3, step: 0.01 });
-    if (gpu) ren.addBinding(rc, 'bloomKnee', { label: 'suavidad', min: 0, max: 1, step: 0.01 });
-    if (gpu) ren.addBinding(rc, 'bloomRadius', { label: 'radio bloom', min: 2, max: 7, step: 1 });
-    if (gpu) ren.addBinding(rc, 'exposure', { label: 'exposición', min: 0.1, max: 4, step: 0.05 });
-    if (gpu) ren.addBinding(rc, 'tonemap', { label: 'tone mapping', options: { ACES: 0, Reinhard: 1, lineal: 2 } });
-    ren.addBinding(rc, 'vignette', { label: 'viñeta', min: 0, max: 1, step: 0.01 });
-    ren.addBinding(rc, 'background', { label: 'fondo' });
+    if (gpu) ren.addBinding(rc, 'colorMode', P('render.colorMode'));
+    ren.addBinding(rc, 'blend', P('render.blend'));
+    ren.addBinding(rc, 'pointSize', P('render.pointSize'));
+    ren.addBinding(rc, 'minPx', P('render.minPx'));
+    ren.addBinding(rc, 'softness', P('render.softness'));
+    ren.addBinding(rc, 'brightness', P('render.brightness'));
+    if (gpu) ren.addBinding(rc, 'orient', P('render.orient'));
+    if (gpu) ren.addBinding(rc, 'speedRef', P('render.speedRef'));
+    ren.addBinding(rc, 'trails', P('render.trails'));
+    ren.addBinding(rc, 'trailFade', P('render.trailFade'));
+    if (gpu) ren.addBinding(rc, 'bloom', P('render.bloom'));
+    if (gpu) ren.addBinding(rc, 'bloomIntensity', P('render.bloomIntensity'));
+    if (gpu) ren.addBinding(rc, 'bloomThreshold', P('render.bloomThreshold'));
+    if (gpu) ren.addBinding(rc, 'bloomKnee', P('render.bloomKnee'));
+    if (gpu) ren.addBinding(rc, 'bloomRadius', P('render.bloomRadius'));
+    if (gpu) ren.addBinding(rc, 'exposure', P('render.exposure'));
+    if (gpu) ren.addBinding(rc, 'tonemap', P('render.tonemap'));
+    ren.addBinding(rc, 'vignette', P('render.vignette'));
+    ren.addBinding(rc, 'background', P('render.background'));
     ren.on('change', onR);
     ren.addButton({ title: 'Encuadrar mundo (doble clic)' }).on('click', () => host.fitCamera());
     ren.addButton({ title: 'Captura PNG (P)' }).on('click', () => host.screenshot());
 
     // ------------------------------------------------------------ Interacción
     const inter = pane.addFolder({ title: 'Ratón', expanded: false });
-    inter.addBinding(cfg.mouse, 'radius', { label: 'radio (×rMax)', min: 1, max: 40, step: 0.5 });
-    inter.addBinding(cfg.mouse, 'strength', { label: 'fuerza', min: -20, max: 20, step: 0.1 });
+    inter.addBinding(cfg.mouse, 'radius', P('mouse.radius'));
+    inter.addBinding(cfg.mouse, 'strength', P('mouse.strength'));
     inter.addBlade({ view: 'text', label: 'uso', parse: (v: string) => v, value: 'clic = atraer, Shift+clic = repeler' });
 
     // ------------------------------------------------------------ Guardar / compartir
@@ -263,20 +256,19 @@ export class Panel {
       pane.refresh();
     });
 
-    const shapeOptions = Object.fromEntries(SHAPES.map((s, i) => [s, i]));
     cfg.species.forEach((sp, i) => {
       const f = folder.addFolder({ title: `Especie ${i + 1}`, expanded: false });
-      f.addBinding(sp, 'color', { label: 'color' });
-      f.addBinding(sp, 'shape', { label: 'forma', options: shapeOptions });
-      f.addBinding(sp, 'size', { label: 'tamaño', min: 0.2, max: 4, step: 0.05 });
-      f.addBinding(sp, 'mass', { label: 'masa', min: 0.1, max: 5, step: 0.05 });
-      f.addBinding(sp, 'friction', { label: 'rozamiento ×', min: 0, max: 3, step: 0.05 });
-      f.addBinding(sp, 'propulsion', { label: 'propulsión', min: 0, max: 2, step: 0.01 });
-      f.addBinding(sp, 'noise', { label: 'ruido', min: 0, max: 2, step: 0.01 });
-      f.addBinding(sp, 'spin', { label: 'giro', min: -2, max: 2, step: 0.01 });
-      f.addBinding(sp, 'alignment', { label: 'alineamiento', min: 0, max: 8, step: 0.05 });
-      f.addBinding(sp, 'pulseAmp', { label: 'pulso amplitud', min: 0, max: 0.9, step: 0.01 });
-      f.addBinding(sp, 'pulseFreq', { label: 'pulso frec.', min: 0.02, max: 3, step: 0.01 });
+      f.addBinding(sp, 'color', P('species.color'));
+      f.addBinding(sp, 'shape', P('species.shape'));
+      f.addBinding(sp, 'size', P('species.size'));
+      f.addBinding(sp, 'mass', P('species.mass'));
+      f.addBinding(sp, 'friction', P('species.friction'));
+      f.addBinding(sp, 'propulsion', P('species.propulsion'));
+      f.addBinding(sp, 'noise', P('species.noise'));
+      f.addBinding(sp, 'spin', P('species.spin'));
+      f.addBinding(sp, 'alignment', P('species.alignment'));
+      f.addBinding(sp, 'pulseAmp', P('species.pulseAmp'));
+      f.addBinding(sp, 'pulseFreq', P('species.pulseFreq'));
       f.on('change', () => host.speciesChanged());
     });
   }

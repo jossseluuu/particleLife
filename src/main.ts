@@ -8,7 +8,7 @@ import { randomSeed } from './rng';
 import { Hud, PopulationChart } from './ui/hud';
 import { MatrixEditor } from './ui/matrixEditor';
 import { Panel, PanelHost } from './ui/panel';
-import { configFromHash, downloadBlob } from './ui/storage';
+import { configFromHash, downloadBlob, presetFromHash } from './ui/storage';
 
 const isSmallScreen = () => window.matchMedia('(max-width: 760px)').matches;
 
@@ -42,8 +42,10 @@ class App implements PanelHost {
     private readonly canvas: HTMLCanvasElement,
     private readonly engine: Engine,
     cfg: Config,
+    presetIndex = 0,
   ) {
     this.cfg = cfg;
+    this.presetIndex = presetIndex;
     this.ui = document.querySelector<HTMLElement>('#ui')!;
     this.matrix = new MatrixEditor(cfg, () => this.engine.sim.updateSpecies());
     this.population = new PopulationChart(cfg);
@@ -365,7 +367,7 @@ class App implements PanelHost {
     });
   }
 
-  private loadPreset(i: number): void {
+  loadPreset(i: number): void {
     const p = PRESETS[i];
     if (!p) return;
     this.presetIndex = i;
@@ -424,13 +426,19 @@ async function start() {
 
   const fromUrl = await configFromHash();
   const defaultN = gpu ? (mobile ? 30_000 : 80_000) : 6000;
-  const cfg = fromUrl ?? PRESETS[0].build({ numParticles: defaultN });
+  const startPreset = (!fromUrl && presetFromHash(PRESETS.length)) || 0;
+  const cfg = fromUrl ?? PRESETS[startPreset].build({ numParticles: defaultN });
 
   try {
     const engine: Engine = gpu
       ? new GpuEngine(gpu.device, canvas, cfg, gpu.adapterName, gpu.timestamps)
       : new CpuEngine(canvas, cfg);
-    new App(canvas, engine, cfg);
+    const app = new App(canvas, engine, cfg, startPreset);
+    // los enlaces #preset=N de la documentación también funcionan sin recargar la página
+    window.addEventListener('hashchange', () => {
+      const i = presetFromHash(PRESETS.length);
+      if (i !== null) app.loadPreset(i);
+    });
   } catch (e) {
     errorEl.textContent = (e as Error).message;
     errorEl.classList.add('visible');

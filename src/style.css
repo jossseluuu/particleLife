@@ -233,6 +233,9 @@ select option {
   color: var(--muted);
   text-align: center;
 }
+#help .close a {
+  color: #a78bfa;
+}
 kbd {
   display: inline-block;
   padding: 0 5px;

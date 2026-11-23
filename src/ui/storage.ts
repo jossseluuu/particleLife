@@ -50,6 +50,17 @@ export async function configFromHash(): Promise<Config | null> {
   }
 }
 
+/**
+ * `#preset=N` (1-based, como las teclas 1–9) abre directamente un preset: enlaces cortos
+ * que usa la documentación y que respetan el nº de partículas adecuado al dispositivo.
+ */
+export function presetFromHash(count: number): number | null {
+  const m = location.hash.match(/(?:^#|&)preset=(\d+)/);
+  if (!m) return null;
+  const i = Number(m[1]) - 1;
+  return i >= 0 && i < count ? i : null;
+}
+
 // ---------------------------------------------------------------- archivos JSON
 
 export function downloadJson(cfg: Config, name = 'particle-life.json'): void {

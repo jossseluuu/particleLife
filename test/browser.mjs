@@ -75,6 +75,12 @@ console.log('\n[1] Escritorio · WebGPU');
   const fromDropdown = await page.$eval('.tp-lstv_s', (s) => s.options[s.selectedIndex].text).catch(() => '');
   check(fromDropdown === 'Membranas', `preset desde el desplegable ("${fromDropdown}") sin errores de Tweakpane`);
 
+  // enlaces #preset=N de la documentación (también sin recargar la página)
+  await page.evaluate(() => (location.hash = '#preset=12'));
+  await wait(1500);
+  const fromHash = await page.$eval('.tp-lstv_s', (s) => s.options[s.selectedIndex].text).catch(() => '');
+  check(fromHash === 'Caos browniano', `#preset=12 carga el preset ("${fromHash}")`);
+
   // editor de matriz: arrastrar una celda cambia su valor
   const box = await (await page.$('.matrix-canvas')).boundingBox();
   await page.mouse.move(box.x + 60, box.y + 60);
