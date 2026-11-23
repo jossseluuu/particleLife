@@ -1,0 +1,38 @@
+name: Release
+
+# Al subir una etiqueta vX.Y.Z: tests, build y release con el HTML autocontenido y la web lista para subir.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:single
+      - name: Empaquetar
+        run: |
+          cp dist-single/index.html particle-life-${GITHUB_REF_NAME}.html
+          (cd dist && zip -r ../particle-life-${GITHUB_REF_NAME}-web.zip .)
+      - name: Notas de la versión desde el CHANGELOG
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v h="## [$version]" 'index($0, h) == 1 {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Versión ${GITHUB_REF_NAME}" > notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: notes.md
+          files: |
+            particle-life-${{ github.ref_name }}.html
+            particle-life-${{ github.ref_name }}-web.zip

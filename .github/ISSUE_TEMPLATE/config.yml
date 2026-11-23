@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🔒 Vulnerabilidad de seguridad
+    url: https://github.com/jossseluuu/particleLife/security/advisories/new
+    about: Infórmala en privado, no en un issue público.
+  - name: ▶ Demo
+    url: https://jossseluuu.github.io/particleLife/
+    about: Prueba la última versión antes de abrir un issue.

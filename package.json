@@ -14,7 +14,8 @@
     "test:gpu": "vite-node test/validate.ts",
     "test:browser": "node test/browser.mjs http://localhost:5173/",
     "test:all": "npm run typecheck && npm test && npm run test:gpu",
-    "build:artifact": "npm run build:single && node scripts/build-artifact.mjs"
+    "build:artifact": "npm run build:single && node scripts/build-artifact.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "tweakpane": "^4.0.5"
@@ -35,6 +36,22 @@
     "webgpu",
     "simulation",
     "generative-art",
-    "artificial-life"
-  ]
+    "artificial-life",
+    "wgsl",
+    "gpgpu",
+    "typescript",
+    "vite"
+  ],
+  "homepage": "https://jossseluuu.github.io/particleLife/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jossseluuu/particleLife.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jossseluuu/particleLife/issues"
+  },
+  "author": "Jose Luis (https://github.com/jossseluuu)",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
 }

@@ -1,0 +1,59 @@
+name: 🐛 Informar de un fallo / Bug report
+description: Algo no funciona como debería.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ¡Gracias por informar! Puedes escribir en español o inglés.
+        Consejo: en la app, **Guardar / compartir → Copiar enlace** genera un enlace que reproduce exactamente tu mundo.
+  - type: textarea
+    id: what
+    attributes:
+      label: Qué ha pasado
+      description: Describe el fallo y qué esperabas que pasara.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      placeholder: |
+        1. Abrir la demo
+        2. Elegir el preset «Galaxia»
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Enlace compartible del mundo (opcional)
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Motor
+      description: Se ve en el HUD, arriba a la izquierda.
+      options:
+        - GPU (WebGPU)
+        - MODO CPU
+        - No lo sé
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Navegador y sistema
+      placeholder: Chrome 142 · Windows 11
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU
+      description: También aparece en el HUD.
+      placeholder: NVIDIA RTX 4060 / Apple M2 / Intel Iris Xe…
+  - type: textarea
+    id: console
+    attributes:
+      label: Errores en la consola (F12)
+      render: text
