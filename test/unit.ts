@@ -2,6 +2,7 @@
 // serialización y aparición de partículas.
 // Uso: npm test
 import { defaultConfig, MAX_CELLS, normalizeConfig, resizeSpecies, Config } from '../src/config';
+import { PARAMS } from '../src/params';
 import { MATRIX_PATTERNS, PRESETS } from '../src/presets';
 import { mulberry32 } from '../src/rng';
 import { CpuSimulation } from '../src/sim/cpuSimulation';
@@ -277,6 +278,38 @@ async function main() {
       check(bad === 0, `"${spawn}": todas las partículas dentro del mundo`);
       check(counts.every((c) => c > 0), `"${spawn}": aparecen todas las especies`);
     }
+    console.log('  ok');
+  }
+
+  {
+    section('Metadatos de parámetros (src/params.ts)');
+    // los valores por defecto y los de cada preset deben caber en el rango que muestra el panel
+    const inRange = (cfg: Config, where: string) => {
+      let bad = 0;
+      const report = (msg: string) => {
+        bad++;
+        console.log(`    ${where}: ${msg}`);
+      };
+      for (const [key, m] of Object.entries(PARAMS)) {
+        const [head, tail] = key.split('.');
+        const c = cfg as unknown as Record<string, unknown>;
+        const values: unknown[] =
+          head === 'species'
+            ? cfg.species.map((sp) => (sp as unknown as Record<string, unknown>)[tail])
+            : tail
+              ? [(c[head] as Record<string, unknown>)[tail]]
+              : [c[key]].flat();
+        for (const v of values) {
+          if (m.options && !Object.values(m.options).includes(v as string | number)) report(`${key}=${v} no es una opción`);
+          if (typeof v === 'number' && ((m.min !== undefined && v < m.min - 1e-9) || (m.max !== undefined && v > m.max + 1e-9)))
+            report(`${key}=${v} fuera de [${m.min}, ${m.max}]`);
+        }
+      }
+      return bad;
+    };
+    check(inRange(defaultConfig(), 'por defecto') === 0, 'los valores por defecto están dentro de su rango');
+    for (const p of PRESETS) check(inRange(p.build({ numParticles: 80_000 }), p.name) === 0, `preset «${p.name}»: valores dentro de rango`);
+    check(PRESETS.every((p) => p.description.length > 20), 'todos los presets tienen descripción');
     console.log('  ok');
   }
 

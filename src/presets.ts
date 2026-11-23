@@ -42,6 +42,8 @@ export function mutate(m: number[], amount: number, r: Rand, min = -1, max = 1):
 
 export interface Preset {
   name: string;
+  /** Qué se ve y por qué; se muestra al cargarlo y en la documentación. */
+  description: string;
   build: (keep: Pick<Config, 'numParticles'>) => Config;
 }
 
@@ -62,6 +64,7 @@ function palette(cfg: Config, h0: number, span: number, s = 0.85, l = 0.6): void
 export const PRESETS: Preset[] = [
   {
     name: 'Sopa primordial',
+    description: 'Seis especies con una matriz aleatoria: el punto de partida clásico, donde cada semilla da un mundo distinto.',
     build: (k) => {
       const c = base(6, k, 1234);
       c.attraction = MATRIX_PATTERNS['aleatoria'](6, mulberry32(c.seed));
@@ -70,6 +73,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Serpientes',
+    description: 'Cada especie se atrae a sí misma y un poco a la siguiente: se forman cadenas que reptan persiguiendo su propia cola.',
     build: (k) => {
       const c = base(8, k, 77);
       c.attraction = MATRIX_PATTERNS['serpientes'](8, mulberry32(c.seed));
@@ -81,6 +85,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Cadenas',
+    description: 'Atracción con los vecinos de la cadena y repulsión con el resto: polímeros que se pliegan sin llegar a mezclarse.',
     build: (k) => {
       const c = base(6, k, 99);
       c.attraction = MATRIX_PATTERNS['cadenas'](6, mulberry32(c.seed));
@@ -91,6 +96,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Depredadores y presas',
+    description: 'Cada especie persigue a la siguiente y huye de la anterior; las estelas dejan ver las persecuciones.',
     build: (k) => {
       const c = base(5, k, 4242);
       c.attraction = MATRIX_PATTERNS['persecución'](5, mulberry32(c.seed));
@@ -105,6 +111,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Piedra, papel, tijera',
+    description: 'Tres especies que se convierten en ciclo al tocarse: aparecen frentes y ondas espirales que nunca se detienen.',
     build: (k) => {
       const S = 3;
       const c = base(S, k, 3);
@@ -122,6 +129,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Ecosistema cíclico (5)',
+    description: 'Cinco especies con conversión cíclica, propulsión creciente y formas distintas: un ecosistema que oscila sin fin.',
     build: (k) => {
       const S = 5;
       const c = base(S, k, 555);
@@ -138,6 +146,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Bandadas',
+    description: 'Propulsión y alineamiento por especie, como los boids: grupos que viajan juntos, se cruzan y se dispersan.',
     build: (k) => {
       const c = base(4, k, 2024);
       const r = mulberry32(c.seed);
@@ -158,6 +167,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Vórtices',
+    description: 'Especies con giro de signo alterno: remolinos que rotan en sentidos opuestos y se repelen.',
     build: (k) => {
       const c = base(4, k, 31415);
       c.attraction = fill(4, (a, b) => (a === b ? 0.6 : (a + b) % 2 ? 0.2 : -0.3));
@@ -173,6 +183,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Respiración',
+    description: 'Células cuyo radio de interacción late con frecuencias distintas por especie: estructuras que se expanden y contraen.',
     build: (k) => {
       const c = base(6, k, 808);
       c.attraction = MATRIX_PATTERNS['células'](6, mulberry32(c.seed));
@@ -187,6 +198,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Galaxia',
+    description: 'Un big bang con atracción global débil y giro: el cúmulo central desarrolla brazos y filamentos.',
     build: (k) => {
       const c = base(5, k, 1977);
       c.spawn = 'big bang';
@@ -206,6 +218,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Membranas',
+    description: 'Radios de interacción distintos para cada pareja: capas y membranas que separan regiones.',
     build: (k) => {
       const S = 6;
       const c = base(S, k, 6061);
@@ -218,6 +231,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: 'Caos browniano',
+    description: 'Matriz simétrica con mucho ruido por especie: agregados que se forman y se deshacen constantemente.',
     build: (k) => {
       const c = base(7, k, 12);
       c.attraction = MATRIX_PATTERNS['simétrica'](7, mulberry32(c.seed));
