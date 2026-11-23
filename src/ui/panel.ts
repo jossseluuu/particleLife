@@ -29,6 +29,7 @@ const SPAWNS: SpawnMode[] = ['aleatorio', 'disco', 'anillo', 'espiral', 'franjas
 
 export class Panel {
   private pane!: Pane;
+  private rebuildPending = false;
   private readonly container: HTMLElement;
 
   constructor(private readonly host: PanelHost) {
@@ -43,8 +44,16 @@ export class Panel {
 
   /** Reconstruye el panel entero (tras cargar un preset o una configuración). */
   rebuild(): void {
-    this.pane.dispose();
-    this.build();
+    // Se aplaza a un microtask: suele llamarse desde el 'change' de un control de este mismo panel
+    // (preset, nº de especies…) y Tweakpane sigue propagando el evento tras el callback; destruir
+    // el panel en ese momento lanza «View has been already disposed». Varias llamadas seguidas → una.
+    if (this.rebuildPending) return;
+    this.rebuildPending = true;
+    queueMicrotask(() => {
+      this.rebuildPending = false;
+      this.pane.dispose();
+      this.build();
+    });
   }
 
   refresh(): void {
