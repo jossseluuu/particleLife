@@ -66,6 +66,15 @@ console.log('\n[1] Escritorio · WebGPU');
   check(presetName === 'Vórtices', `presets por teclado (desplegable: "${presetName}")`);
   await shot(page, 'gpu-2-preset-vortices');
 
+  // desplegable de presets (único acceso a los presets 10–12); antes destruía el panel dentro de su propio evento
+  await page.$eval('.tp-lstv_s', (s) => {
+    s.selectedIndex = 10;
+    s.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await wait(1500);
+  const fromDropdown = await page.$eval('.tp-lstv_s', (s) => s.options[s.selectedIndex].text).catch(() => '');
+  check(fromDropdown === 'Membranas', `preset desde el desplegable ("${fromDropdown}") sin errores de Tweakpane`);
+
   // editor de matriz: arrastrar una celda cambia su valor
   const box = await (await page.$('.matrix-canvas')).boundingBox();
   await page.mouse.move(box.x + 60, box.y + 60);
