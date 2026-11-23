@@ -1,5 +1,16 @@
+# dependencias y builds
 node_modules
 dist
 dist-single
+
+# salida de test:browser (las capturas de la documentación viven en docs/media)
 screenshots
+
+# entorno y sistema
+.env*
 *.log
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea

@@ -1,0 +1,27 @@
+name: ✨ Proponer una idea / Feature request
+description: Un preset, un comportamiento, una mejora de la interfaz…
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: La idea
+      description: ¿Qué te gustaría poder hacer?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Por qué
+      description: ¿Qué problema resuelve o qué permitiría explorar?
+  - type: textarea
+    id: refs
+    attributes:
+      label: Referencias
+      description: Vídeos, artículos, capturas o enlaces compartibles que lo ilustren.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Colaboración
+      options:
+        - label: Me gustaría implementarlo yo (ver CONTRIBUTING.md)

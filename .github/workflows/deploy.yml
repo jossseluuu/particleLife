@@ -6,23 +6,24 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Por defecto sólo lectura; el job de despliegue pide lo que necesita.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# Un run por rama/PR: un push nuevo cancela el anterior de la misma rama, pero un PR nunca cancela main.
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
+    name: Tipos, tests y build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - name: Comprobación de tipos
@@ -31,14 +32,24 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Build de un solo archivo
+        run: node scripts/build-single.mjs
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           path: dist
 
   deploy:
+    name: GitHub Pages
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

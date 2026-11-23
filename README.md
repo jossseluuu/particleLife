@@ -1,117 +1,206 @@
-# Particle Life · ecosistema 2D en GPU
+<div align="center">
 
-Miles (o millones) de partículas de varias especies que se atraen o repelen según una matriz
-de interacción. Con reglas físicas muy simples aparecen estructuras complejas: células,
-serpientes, bandadas, vórtices, ondas espirales…
+# Particle Life
 
-- **Simulación O(N) en GPU** con WebGPU (rejilla uniforme + counting sort en compute shaders):
-  1 millón de partículas en ~2 ms por paso en una RTX 5050 Laptop, ~9 ms en una Radeon 780M integrada.
-- **Funciona en cualquier navegador**: si no hay WebGPU, cambia solo a un motor por CPU
-  (mismas reglas, validado contra el de GPU) con menos partículas.
-- **Totalmente ajustable en tiempo real**: matrices de atracción, radio y conversión;
-  comportamientos por especie (masa, propulsión, ruido, giro, alineamiento, pulso);
-  render HDR con bloom, estelas, formas SDF y 5 modos de color.
-- **Escritorio y móvil**: ratón, teclado y gestos táctiles (pellizcar para zoom).
-- **Compartible**: cada mundo se puede guardar como enlace, JSON o captura PNG.
+**Ecosistema 2D de partículas simulado y renderizado íntegramente en GPU con WebGPU.**
+Reglas mínimas de atracción y repulsión entre especies → células, serpientes, bandadas, vórtices y ondas espirales.
 
-## Probarlo
+[![CI y despliegue](https://github.com/jossseluuu/particleLife/actions/workflows/deploy.yml/badge.svg)](https://github.com/jossseluuu/particleLife/actions/workflows/deploy.yml)
+[![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-7c3aed)](https://jossseluuu.github.io/particleLife/)
+[![WebGPU](https://img.shields.io/badge/WebGPU-WGSL-005a9c)](https://www.w3.org/TR/webgpu/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](tsconfig.json)
+[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
 
-Ábrelo en Chrome o Edge (WebGPU). En Firefox/Safari antiguos funciona en modo CPU.
+**[▶ Abrir la demo](https://jossseluuu.github.io/particleLife/)** · [English](README.en.md) · [Arquitectura](docs/ARCHITECTURE.md) · [Contribuir](CONTRIBUTING.md)
 
-> Si ves «MODO CPU» en Chrome/Edge, revisa que la **aceleración por hardware** esté activada
-> (Configuración → Sistema → «Usar aceleración gráfica cuando esté disponible») y reinicia el navegador.
-> En portátiles con dos GPUs, asigna el navegador a la dedicada en
-> Windows → Configuración → Pantalla → Gráficos → Alto rendimiento.
+<img src="docs/media/demo.webp" alt="Animación: partículas de ocho especies formando cadenas y cúmulos que se persiguen" width="720">
 
-Pulsa `?` dentro de la app para ver todos los controles.
+</div>
+
+---
+
+## Índice
+
+- [Qué es](#qué-es)
+- [Características](#características)
+- [Galería de presets](#galería-de-presets)
+- [Controles](#controles)
+- [Empezar](#empezar)
+- [Rendimiento](#rendimiento)
+- [Pruebas](#pruebas)
+- [Cómo funciona](#cómo-funciona)
+- [Publicar tu propia copia](#publicar-tu-propia-copia)
+- [Contribuir](#contribuir) · [Licencia](#licencia)
+
+## Qué es
+
+Cada color es una **especie**. Cada especie se siente atraída o repelida por las demás según una
+**matriz de interacción** — y esa matriz es *asimétrica*: que A persiga a B no implica que B persiga a A.
+Al romper la tercera ley de Newton aparecen estructuras que se mueven, se dividen y se cazan entre sí,
+como si estuvieran vivas.
+
+Este proyecto lleva la idea al límite en el navegador: hasta **un millón de partículas** a tiempo real,
+todo editable mientras corre.
+
+<p align="center">
+  <img src="docs/media/hero-ui.webp" alt="Interfaz completa: editor de matrices a la izquierda, panel de parámetros a la derecha y la simulación de fondo" width="900">
+</p>
+
+## Características
+
+| | |
+| --- | --- |
+| ⚡ **Simulación O(N) en GPU** | Rejilla uniforme + *counting sort* en compute shaders WGSL. 1 M de partículas en ~2 ms por paso. |
+| 🧬 **Ecosistemas, no sólo física** | Matriz de **conversión** (depredación, piedra-papel-tijera), radios por pareja, y por especie: masa, rozamiento, propulsión, ruido, giro, alineamiento y pulso. |
+| 🎨 **Render HDR** | Bloom *dual-Kawase*, tone mapping ACES, estelas, 8 formas SDF con halo y 5 modos de color. |
+| 🧩 **Editor de matrices** | Arrastrar para ajustar, patrones predefinidos, mutar, simetrizar; gráfica de población por especie en vivo. |
+| 💻 **Funciona en cualquier navegador** | Sin WebGPU cambia solo a un motor CPU con las mismas reglas (validado contra el de GPU). |
+| 📱 **Escritorio y móvil** | Ratón, teclado y gestos táctiles (pellizcar para zoom); interfaz plegable en pantallas pequeñas. |
+| 🔗 **Compartible** | Cada mundo se guarda como enlace comprimido, JSON o captura PNG. |
+| ✅ **Probado** | 187 comprobaciones unitarias en CI, validación en GPU real (rejilla vs fuerza bruta, CPU vs GPU) y pruebas E2E en Chrome. |
+
+## Galería de presets
+
+Doce mundos listos para explorar (teclas <kbd>1</kbd>–<kbd>9</kbd> o el desplegable *preset*):
+
+| | | |
+| :---: | :---: | :---: |
+| <img src="docs/media/preset-01.webp" alt="Sopa primordial" width="280"><br>**1 · Sopa primordial**<br><sub>matriz aleatoria de 6 especies</sub> | <img src="docs/media/preset-02.webp" alt="Serpientes" width="280"><br>**2 · Serpientes**<br><sub>cada especie persigue a la siguiente</sub> | <img src="docs/media/preset-03.webp" alt="Cadenas" width="280"><br>**3 · Cadenas**<br><sub>polímeros que se pliegan</sub> |
+| <img src="docs/media/preset-04.webp" alt="Depredadores y presas" width="280"><br>**4 · Depredadores y presas**<br><sub>persecución con estelas</sub> | <img src="docs/media/preset-05.webp" alt="Piedra, papel, tijera" width="280"><br>**5 · Piedra, papel, tijera**<br><sub>conversión cíclica → ondas espirales</sub> | <img src="docs/media/preset-06.webp" alt="Ecosistema cíclico" width="280"><br>**6 · Ecosistema cíclico (5)**<br><sub>cinco especies que se convierten</sub> |
+| <img src="docs/media/preset-07.webp" alt="Bandadas" width="280"><br>**7 · Bandadas**<br><sub>propulsión + alineamiento</sub> | <img src="docs/media/preset-08.webp" alt="Vórtices" width="280"><br>**8 · Vórtices**<br><sub>especies que giran en sentidos opuestos</sub> | <img src="docs/media/preset-09.webp" alt="Respiración" width="280"><br>**9 · Respiración**<br><sub>células con pulso propio</sub> |
+| <img src="docs/media/preset-10.webp" alt="Galaxia" width="280"><br>**10 · Galaxia**<br><sub>big bang con rotación</sub> | <img src="docs/media/preset-11.webp" alt="Membranas" width="280"><br>**11 · Membranas**<br><sub>radios distintos por pareja</sub> | <img src="docs/media/preset-12.webp" alt="Caos browniano" width="280"><br>**12 · Caos browniano**<br><sub>ruido por especie</sub> |
+
+<details>
+<summary><b>Editor de matrices, modo CPU y móvil</b></summary>
+<br>
+
+| Editor de matrices | Modo CPU (sin WebGPU) | Móvil |
+| :---: | :---: | :---: |
+| <img src="docs/media/matrix-editor.webp" alt="Editor de matrices de atracción" width="260"> | <img src="docs/media/cpu-mode.webp" alt="Simulación en modo CPU" width="360"> | <img src="docs/media/mobile.webp" alt="Vista en móvil" width="170"> |
+
+</details>
+
+## Controles
+
+Pulsa <kbd>?</kbd> dentro de la app para ver la ayuda completa.
 
 | Acción | Ratón / teclado | Táctil |
 | --- | --- | --- |
-| Atraer / repeler partículas | clic / Shift+clic | 1 dedo |
+| Atraer / repeler partículas | clic / <kbd>Shift</kbd>+clic | 1 dedo |
 | Desplazar · zoom | clic derecho · rueda | 2 dedos · pellizcar |
-| Presets | teclas 1–9 | desplegable |
-| Pausa · paso a paso | Espacio · S | botón ⏸ |
-| Matriz aleatoria · mutar | R · M | botones del editor |
-| Ocultar interfaz | H | botón ☰ |
+| Encuadrar el mundo | doble clic | — |
+| Presets | <kbd>1</kbd>–<kbd>9</kbd> | desplegable |
+| Pausa · paso a paso · reiniciar | <kbd>Espacio</kbd> · <kbd>S</kbd> · <kbd>N</kbd> | botón ⏸ |
+| Matriz aleatoria · mutar · nueva semilla | <kbd>R</kbd> · <kbd>M</kbd> · <kbd>B</kbd> | botones del editor |
+| Estelas · captura PNG · pantalla completa | <kbd>T</kbd> · <kbd>P</kbd> · <kbd>F</kbd> | botón ⛶ |
+| Ocultar interfaz | <kbd>H</kbd> | botón ☰ |
 
-## Desarrollo
+**En el editor de matrices:** arrastrar ↕ ajusta · rueda = paso fino · clic derecho = neutro ·
+doble clic = aleatorio · <kbd>Shift</kbd> edita (a,b) y (b,a) a la vez.
+
+## Empezar
+
+Requisitos: **Node.js 20.19+ o 22.12+** (recomendado 22, ver [`.nvmrc`](.nvmrc)) y un navegador con WebGPU
+(Chrome / Edge 113+, Safari 26+, Firefox 141+ en Windows) para el modo completo.
 
 ```bash
+git clone https://github.com/jossseluuu/particleLife.git
+cd particleLife
 npm install
 npm run dev            # http://localhost:5173
-npm run build          # versión de producción en dist/
-npm run build:single   # todo en un único HTML: dist-single/index.html (se abre sin servidor)
 ```
 
-URL con `?cpu` fuerza el modo CPU (útil para probarlo).
+| Script | Qué hace |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo con recarga en caliente |
+| `npm run build` | Comprueba tipos y genera la versión de producción en `dist/` |
+| `npm run build:single` | Todo en un único HTML (`dist-single/index.html`) que se abre sin servidor |
+| `npm run preview` | Sirve `dist/` para probar la build |
+| `npm run screenshots` | Regenera las imágenes de este README (`docs/media/`) con Chrome real |
 
-## Publicarlo en internet (GitHub Pages)
+Añade `?cpu` a la URL para forzar el modo CPU.
 
-El repositorio incluye `.github/workflows/deploy.yml`: en cada push a `main` comprueba tipos,
-ejecuta los tests, compila y publica en GitHub Pages.
+> **¿Ves «MODO CPU» en Chrome o Edge?** Activa la aceleración por hardware
+> (Configuración → Sistema → «Usar aceleración gráfica cuando esté disponible») y reinicia el navegador.
+> En portátiles con dos GPU, asigna el navegador a la dedicada en
+> Windows → Configuración → Pantalla → Gráficos → Alto rendimiento.
 
-1. Crea un repositorio vacío en GitHub (p. ej. `particle-life`).
-2. `git remote add origin https://github.com/<usuario>/particle-life.git && git push -u origin main`
-3. En GitHub: **Settings → Pages → Source: GitHub Actions**.
-4. A los ~2 minutos estará en `https://<usuario>.github.io/particle-life/`.
+## Rendimiento
 
-`vite.config.ts` usa `base: './'`, así que funciona en cualquier subruta o hosting estático
-(Netlify, Vercel, Cloudflare Pages, un servidor propio…) subiendo la carpeta `dist/`.
+Tiempo de un paso de simulación (compute) medido con `npm run test:gpu`:
+
+| Partículas | NVIDIA RTX 5050 Laptop | AMD Radeon 780M (integrada) |
+| ---: | ---: | ---: |
+| 50 000 | 0,24 ms | — |
+| 200 000 | 0,45 ms | — |
+| 500 000 | 1,06 ms | — |
+| 1 000 000 | 2,15 ms | ~9 ms |
+
+El coste crece de forma lineal con el número de partículas: cada una sólo mira las 3×3 celdas vecinas
+(~30 vecinos de media con la densidad por defecto) en lugar de las N−1 restantes.
+El modo CPU arranca con 6 000 partículas para mantener una tasa de frames fluida.
 
 ## Pruebas
 
 ```bash
-npm test               # unitarios sin GPU (también en CI): 187 comprobaciones
-npm run test:gpu       # en tu GPU real con Dawn: rejilla vs fuerza bruta, CPU vs GPU, estabilidad, render, rendimiento
-npm run test:browser   # con `npm run dev` arrancado: Chrome real, escritorio GPU + modo CPU + móvil táctil
+npm test               # 187 comprobaciones unitarias sin GPU (se ejecutan en CI)
+npm run test:gpu       # en tu GPU con Dawn: rejilla vs fuerza bruta, CPU vs GPU, estabilidad, rendimiento
+npm run test:browser   # con `npm run dev` arrancado: Chrome real en escritorio GPU, modo CPU y móvil táctil
+npm run test:all       # tipos + unitarios + GPU
 ```
 
-Qué se comprueba:
+Qué se valida:
 
-- **Corrección del algoritmo O(N)**: la rejilla da el mismo resultado que la fuerza bruta O(N²),
-  en GPU y en CPU (incluidas conversiones de especie).
-- **Equivalencia de motores**: un paso en CPU y en GPU desde el mismo estado coincide (error ~1e-5, float32 vs float64).
-- **Física**: dos partículas que se atraen se estabilizan a exactamente β·rMax; las que se repelen se separan;
-  interacción a través del borde toroidal; conservación del centro de masas.
-- **Estabilidad** de los 12 presets (sin NaN, dentro del mundo, población conservada, velocidad acotada).
-- **Configuración**: redimensionado de matrices, normalización, presets válidos, enlace comprimido de ida y vuelta.
-- **Navegador**: arranque, presets, editor de matrices, zoom, pausa, ayuda, enlace compartible que restaura el mundo,
-  modo CPU con su aviso, móvil con pellizco de dos dedos y paneles plegables, sin errores en consola.
+- **Corrección del algoritmo O(N)** — la rejilla da el mismo resultado que la fuerza bruta O(N²), en GPU y en CPU.
+- **Equivalencia de motores** — un paso en CPU y en GPU desde el mismo estado coincide (error ~1e-4, float32 frente a float64).
+- **Física** — dos partículas que se atraen se estabilizan exactamente a β·rMax; interacción a través del borde toroidal; conservación del centro de masas.
+- **Estabilidad** de los 12 presets — sin NaN, población conservada, velocidad acotada.
+- **Configuración** — redimensionado de matrices, normalización y enlace comprimido de ida y vuelta.
+- **Navegador** — presets (teclado y desplegable), editor, zoom, pausa, ayuda, enlace compartible, modo CPU y gestos táctiles, sin errores en consola.
 
-## Arquitectura
+## Cómo funciona
 
-| Archivo | Qué hace |
-| --- | --- |
-| `src/shaders/sim.wgsl` | Simulación GPU: conteo por celdas, prefix-sum de 2 niveles, scatter, fuerzas y comportamientos |
-| `src/sim/simulation.ts` | Buffers, pipelines y paso de simulación en GPU |
-| `src/sim/cpuSimulation.ts` | Motor de respaldo en CPU (port fiel de `sim.wgsl`) |
-| `src/sim/world.ts` · `spawn.ts` | Tamaño del mundo, rejilla y modos de aparición (compartidos) |
-| `src/shaders/particles.wgsl` | Quads instanciados que leen el buffer de la simulación; formas SDF con halo |
-| `src/shaders/post.wgsl` | Bloom dual-Kawase, tone mapping ACES, viñeta, dithering |
-| `src/render/renderer.ts` · `canvasRenderer.ts` | Render WebGPU (HDR) y Canvas 2D (modo CPU) |
-| `src/engine.ts` | Interfaz común de motores (GPU / CPU) |
-| `src/ui/*` | Editor de matrices, panel (Tweakpane), HUD, población, guardado y enlaces |
-| `src/presets.ts` | Patrones de matriz y presets completos |
+Fuerza entre dos partículas en función de la distancia normalizada `r = d / (rMax · radio_ab)`:
 
-### Paso de simulación (un compute pass en GPU)
+```text
+        fuerza
+          ▲          a_ab > 0 → atracción
+     a_ab ┤        ╱╲
+          │      ╱    ╲
+        0 ┼────╱────────╲──────▶ r
+          │  ╱β          1
+       −1 ┤╱   repulsión universal (evita que colapsen)
+```
 
-1. `countCells`: celda de cada partícula + `atomicAdd` en su contador
-2. `scanBlocks` → `scanSums` → `addSums`: prefix-sum en 2 niveles (hasta 262 144 celdas)
-3. `scatter`: reordena físicamente las partículas por celda (coherencia de caché)
-4. `forces`: cada partícula recorre sólo las 3×3 celdas vecinas → coste O(N·k)
+- `r < β` → repulsión `r/β − 1`
+- `β ≤ r < 1` → `a_ab · (1 − |2r − 1 − β| / (1 − β))`
 
-### Modelo físico
+Cada paso en GPU es un único compute pass con cuatro fases: **conteo por celda → prefix-sum en dos
+niveles → reordenación física de las partículas → fuerzas sobre las 3×3 celdas vecinas**.
+Integración semi-implícita con rozamiento exponencial en un mundo toroidal.
 
-Fuerza por pareja con distancia normalizada `r = d / (rMax·radio_ab)`:
+Detalle completo de módulos, buffers, shaders y decisiones de diseño en **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
-- `r < β`: repulsión universal `r/β − 1` (× repulsión)
-- `β ≤ r < 1`: `a_ab · (1 − |2r − 1 − β| / (1 − β))`
+## Publicar tu propia copia
 
-Integración semi-implícita con rozamiento exponencial y mundo toroidal.
-La matriz es **asimétrica** (`a_ab ≠ a_ba`), lo que rompe acción-reacción y genera persecuciones y estructuras "vivas".
-Cada especie tiene además masa, rozamiento, propulsión, ruido, giro, alineamiento y pulso,
-y la matriz de **conversión** permite depredación (piedra-papel-tijera, ecosistemas cíclicos).
+El workflow [`deploy.yml`](.github/workflows/deploy.yml) comprueba tipos, ejecuta los tests, compila y
+publica en GitHub Pages en cada push a `main`.
+
+1. Haz un fork (o sube tu copia a un repositorio nuevo).
+2. En GitHub: **Settings → Pages → Source: GitHub Actions**.
+3. Haz push a `main`: en ~2 minutos estará en `https://<usuario>.github.io/<repositorio>/`.
+
+`vite.config.ts` usa `base: './'`, así que `dist/` funciona en cualquier subruta o hosting estático
+(Netlify, Vercel, Cloudflare Pages, un servidor propio…).
+
+## Contribuir
+
+¡Las contribuciones son bienvenidas! Lee [CONTRIBUTING.md](CONTRIBUTING.md) para preparar el entorno,
+ejecutar las pruebas y proponer cambios. Ideas sencillas para empezar: nuevos presets, nuevos patrones
+de matriz o nuevas formas SDF. Este proyecto sigue un [código de conducta](CODE_OF_CONDUCT.md).
+
+Inspirado en el trabajo de Jeffrey Ventrella (*Clusters*), Tom Mohr (*Particle Life*) y la comunidad de vida artificial.
 
 ## Licencia
 
-MIT
+[MIT](LICENSE) © 2026 Jose Luis
