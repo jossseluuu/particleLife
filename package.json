@@ -15,7 +15,15 @@
     "test:browser": "node test/browser.mjs http://localhost:5173/",
     "test:all": "npm run typecheck && npm test && npm run test:gpu",
     "build:artifact": "npm run build:single && node scripts/build-artifact.mjs",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "docs:gen": "vite-node scripts/gen-docs.ts",
+    "docs:dev": "vitepress dev docs --port 5174",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "lint:md": "markdownlint-cli2",
+    "check": "npm run typecheck && npm test && npm run docs:gen -- --check && npm run lint:md",
+    "build:all": "npm run build && npm run docs:build && npm run docs:links",
+    "docs:links": "node scripts/check-links.mjs"
   },
   "dependencies": {
     "tweakpane": "^4.0.5"
@@ -24,10 +32,12 @@
     "@tweakpane/core": "^2.0.5",
     "@types/node": "^26.6.6",
     "@webgpu/types": "^0.1.74",
+    "markdownlint-cli2": "^0.24.2",
     "puppeteer-core": "^25.18.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vite-node": "^6.0.0",
+    "vitepress": "^1.6.4",
     "webgpu": "^0.6.2"
   },
   "license": "MIT",

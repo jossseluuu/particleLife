@@ -17,10 +17,12 @@ concurrency:
 
 jobs:
   build:
-    name: Tipos, tests y build
+    name: Tipos, tests, docs y build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # historial completo: fechas «Actualizado» de la documentación
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -30,10 +32,18 @@ jobs:
         run: npm run typecheck
       - name: Tests unitarios (motor CPU, geometría, configuración, URL)
         run: npm test
-      - name: Build
+      - name: Documentación generada al día (parámetros, presets, JSON Schema)
+        run: npm run docs:gen -- --check
+      - name: Estilo de Markdown
+        run: npm run lint:md
+      - name: Build de la app
         run: npm run build
       - name: Build de un solo archivo
         run: node scripts/build-single.mjs
+      - name: Build de la documentación (falla con enlaces rotos)
+        run: npm run docs:build
+      - name: Anclas y enlaces relativos
+        run: npm run docs:links
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:

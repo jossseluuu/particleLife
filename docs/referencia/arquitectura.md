@@ -1,7 +1,8 @@
 # Arquitectura
 
 Visión técnica de Particle Life: cómo está organizado el código, cómo es un paso de simulación en GPU,
-el modelo físico y las decisiones de diseño. Para usar la aplicación, mira el [README](../README.md).
+y las decisiones de diseño. El modelo físico se explica con más calma en [Modelo físico](../conceptos/modelo-fisico)
+y el detalle de cada parámetro en la [referencia de parámetros](./parametros).
 
 ## Mapa de módulos
 

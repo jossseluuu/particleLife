@@ -9,9 +9,10 @@ Minimal attraction/repulsion rules between species → cells, snakes, flocks, vo
 [![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-7c3aed)](https://jossseluuu.github.io/particleLife/)
 [![WebGPU](https://img.shields.io/badge/WebGPU-WGSL-005a9c)](https://www.w3.org/TR/webgpu/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](tsconfig.json)
+[![Docs](https://img.shields.io/badge/docs-VitePress-a78bfa)](https://jossseluuu.github.io/particleLife/docs/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**[▶ Open the demo](https://jossseluuu.github.io/particleLife/)** · [Español](README.md) · [Architecture (ES)](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md)
+**[▶ Open the demo](https://jossseluuu.github.io/particleLife/)** · **[📚 Documentation (ES)](https://jossseluuu.github.io/particleLife/docs/)** · [Español](README.md) · [Contributing](CONTRIBUTING.md)
 
 <img src="docs/media/demo.webp" alt="Animation: particles of eight species forming chains and clusters that chase each other" width="720">
 
@@ -42,7 +43,7 @@ This project pushes the idea in the browser: up to **one million particles** in 
 | 💻 **Runs in any browser** | Without WebGPU it falls back to a CPU engine with the same rules (validated against the GPU one). |
 | 📱 **Desktop and mobile** | Mouse, keyboard and touch gestures (pinch to zoom); collapsible UI on small screens. |
 | 🔗 **Shareable** | Every world can be saved as a compressed link, JSON or PNG screenshot. |
-| ✅ **Tested** | 187 unit checks in CI, real-GPU validation (grid vs brute force, CPU vs GPU) and end-to-end tests in Chrome. |
+| ✅ **Tested** | 201 unit checks in CI, real-GPU validation (grid vs brute force, CPU vs GPU) and end-to-end tests in Chrome. |
 
 ## Presets
 
@@ -85,7 +86,7 @@ npm run dev            # http://localhost:5173
 | `npm run dev` | Dev server with hot reload |
 | `npm run build` | Type-check and production build into `dist/` |
 | `npm run build:single` | Everything in one HTML file (`dist-single/index.html`) that opens without a server |
-| `npm test` | 187 GPU-free unit checks (run in CI) |
+| `npm test` | 201 GPU-free unit checks (run in CI) |
 | `npm run test:gpu` | Validation on your real GPU via Dawn |
 | `npm run test:browser` | End-to-end in real Chrome (needs `npm run dev` running) |
 | `npm run screenshots` | Regenerates the images in this README |
@@ -102,7 +103,7 @@ particles by cell → forces from the 3×3 neighbouring cells**, so the cost gro
 Semi-implicit integration with exponential friction on a toroidal world. The renderer reads the
 simulation buffer directly as instance data — particles never touch the CPU.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (Spanish) for modules, buffers and design decisions.
+The [documentation site](https://jossseluuu.github.io/particleLife/docs/) (Spanish) covers the [physical model](https://jossseluuu.github.io/particleLife/docs/conceptos/modelo-fisico), every [parameter](https://jossseluuu.github.io/particleLife/docs/referencia/parametros) and the [GPU architecture](https://jossseluuu.github.io/particleLife/docs/referencia/arquitectura).
 
 ## Contributing
 
