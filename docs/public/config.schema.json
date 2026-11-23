@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jossseluuu.github.io/particleLife/docs/config.schema.json",
+  "title": "Particle Life · configuración de un mundo",
+  "description": "Formato de «Exportar JSON» y del enlace compartible. Todos los campos son opcionales: los que faltan toman su valor por defecto. Generado por scripts/gen-docs.ts.",
+  "type": "object",
+  "properties": {
+    "seed": {
+      "description": "Semilla del generador aleatorio: posiciones iniciales y matrices aleatorias. La misma semilla reproduce el mismo mundo.",
+      "type": "number"
+    },
+    "numParticles": {
+      "description": "Número total de partículas. El máximo real depende del motor (menos en modo CPU) y de la memoria de la GPU.",
+      "type": "number",
+      "minimum": 1000,
+      "maximum": 2000000
+    },
+    "numSpecies": {
+      "description": "Número de especies (colores). Al cambiarlo se redimensionan las matrices conservando la parte común.",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "density": {
+      "description": "Vecinos medios dentro del radio máximo. Define el tamaño del mundo: más densidad, mundo más pequeño y más apretado.",
+      "type": "number",
+      "minimum": 4,
+      "maximum": 120
+    },
+    "spawn": {
+      "description": "Cómo se colocan las partículas al reiniciar.",
+      "enum": [
+        "aleatorio",
+        "disco",
+        "anillo",
+        "espiral",
+        "franjas",
+        "cúmulos",
+        "big bang"
+      ]
+    },
+    "rMax": {
+      "description": "Alcance máximo de la interacción entre dos partículas. También fija el tamaño de las celdas de la rejilla.",
+      "type": "number",
+      "minimum": 8,
+      "maximum": 150
+    },
+    "beta": {
+      "description": "Fracción del radio donde termina la repulsión universal y empieza la zona gobernada por la matriz.",
+      "type": "number",
+      "minimum": 0.05,
+      "maximum": 0.9
+    },
+    "repulsion": {
+      "description": "Intensidad del núcleo repulsivo que impide que las partículas se superpongan.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "forceFactor": {
+      "description": "Multiplicador global de todas las fuerzas.",
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 40
+    },
+    "frictionHalfLife": {
+      "description": "Tiempo en el que la velocidad se reduce a la mitad sin fuerzas. Valores bajos = medio viscoso.",
+      "type": "number",
+      "minimum": 0.005,
+      "maximum": 1
+    },
+    "dt": {
+      "description": "Paso de tiempo de la integración. Más grande = más rápido pero menos estable.",
+      "type": "number",
+      "minimum": 0.002,
+      "maximum": 0.05
+    },
+    "maxSpeed": {
+      "description": "Límite de velocidad de cada partícula; evita explosiones numéricas.",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 80
+    },
+    "stepsPerFrame": {
+      "description": "Pasos de simulación por frame dibujado: acelera la evolución a costa de rendimiento.",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 8
+    },
+    "algorithm": {
+      "description": "Rejilla espacial O(N) (normal) o fuerza bruta O(N²), útil sólo como referencia con pocas partículas.",
+      "enum": [
+        "rejilla",
+        "fuerza bruta"
+      ]
+    },
+    "attraction": {
+      "description": "Matriz S×S: `attraction[a·S + b]` es cómo reacciona la especie a ante b (positivo atrae, negativo repele). Se edita en la pestaña «Atracción».",
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": -1,
+        "maximum": 1
+      },
+      "maxItems": 256
+    },
+    "radius": {
+      "description": "Matriz S×S que escala el radio de interacción de cada pareja. Se edita en la pestaña «Radio».",
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0.1,
+        "maximum": 1
+      },
+      "maxItems": 256
+    },
+    "conversion": {
+      "description": "Matriz S×S: `conversion[a·S + b]` es la tasa a la que a convierte a b por contacto. Se edita en la pestaña «Conversión».",
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 5
+      },
+      "maxItems": 256
+    },
+    "conversionEnabled": {
+      "description": "Activa la conversión de especies (depredación, piedra-papel-tijera).",
+      "type": "boolean"
+    },
+    "conversionRadius": {
+      "description": "Distancia normalizada por debajo de la cual dos partículas se consideran en contacto.",
+      "type": "number",
+      "minimum": 0.05,
+      "maximum": 1
+    },
+    "drift": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "La matriz de atracción cambia sola poco a poco con un paseo aleatorio suave: el mundo nunca se estanca.",
+          "type": "boolean"
+        },
+        "rate": {
+          "description": "Velocidad de la deriva de la matriz.",
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 1
+        }
+      }
+    },
+    "mouse": {
+      "type": "object",
+      "properties": {
+        "radius": {
+          "description": "Alcance del pincel del ratón o del dedo.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 40
+        },
+        "strength": {
+          "description": "Fuerza del pincel: positiva atrae, negativa repele (Shift invierte el signo).",
+          "type": "number",
+          "minimum": -20,
+          "maximum": 20
+        }
+      }
+    },
+    "render": {
+      "type": "object",
+      "properties": {
+        "pointSize": {
+          "description": "Tamaño base de las partículas.",
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 0.8
+        },
+        "minPx": {
+          "description": "Tamaño mínimo en pantalla, para que no desaparezcan al alejar la cámara.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 6
+        },
+        "softness": {
+          "description": "Halo difuso alrededor de cada partícula.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "brightness": {
+          "description": "Brillo de cada partícula.",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 4
+        },
+        "colorMode": {
+          "description": "Cómo se colorea cada partícula.",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "blend": {
+          "description": "Mezcla aditiva (las zonas densas brillan) o alfa (opaca).",
+          "enum": [
+            "aditivo",
+            "alfa"
+          ]
+        },
+        "orient": {
+          "description": "Gira las formas según la dirección de su velocidad.",
+          "type": "boolean"
+        },
+        "speedRef": {
+          "description": "Velocidad que satura la paleta en los modos de color por velocidad.",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 20
+        },
+        "trails": {
+          "description": "En vez de borrar cada frame, atenúa el anterior: deja rastro.",
+          "type": "boolean"
+        },
+        "trailFade": {
+          "description": "Fracción de la imagen que se conserva por frame con estelas activas.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 0.99
+        },
+        "bloom": {
+          "description": "Resplandor alrededor de las zonas brillantes.",
+          "type": "boolean"
+        },
+        "bloomIntensity": {
+          "description": "Intensidad del bloom.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "bloomThreshold": {
+          "description": "Brillo a partir del cual una zona genera bloom.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "bloomKnee": {
+          "description": "Suavidad de la transición en el umbral del bloom.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "bloomRadius": {
+          "description": "Niveles de la pirámide de bloom: más niveles, resplandor más amplio.",
+          "type": "number",
+          "minimum": 2,
+          "maximum": 7
+        },
+        "exposure": {
+          "description": "Exposición antes del tone mapping.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 4
+        },
+        "tonemap": {
+          "description": "Curva que comprime el HDR a la pantalla.",
+          "enum": [
+            0,
+            1,
+            2
+          ]
+        },
+        "background": {
+          "description": "Color de fondo (`#rrggbb`).",
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "vignette": {
+          "description": "Oscurecimiento de los bordes de la imagen.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "species": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "description": "Color de la especie en formato `#rrggbb`.",
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "shape": {
+            "description": "Forma dibujada (SDF).",
+            "enum": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ]
+          },
+          "size": {
+            "description": "Multiplicador del tamaño visual (no afecta a la física).",
+            "type": "number",
+            "minimum": 0.2,
+            "maximum": 4
+          },
+          "mass": {
+            "description": "Inercia: la aceleración se divide por la masa.",
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 5
+          },
+          "friction": {
+            "description": "Multiplicador del rozamiento global para esta especie (0 = sin rozamiento propio).",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "propulsion": {
+            "description": "Empuje constante en la dirección de su velocidad (materia activa).",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "noise": {
+            "description": "Agitación browniana aleatoria en cada paso.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "spin": {
+            "description": "Fuerza tangencial respecto a sus vecinos; genera vórtices. El signo indica el sentido.",
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2
+          },
+          "alignment": {
+            "description": "Tendencia a igualar su velocidad con la media de sus vecinos (bandadas).",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 8
+          },
+          "pulseAmp": {
+            "description": "Amplitud de la oscilación del radio de interacción («respiración»).",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.9
+          },
+          "pulseFreq": {
+            "description": "Frecuencia de la respiración, en hercios de tiempo simulado.",
+            "type": "number",
+            "minimum": 0.02,
+            "maximum": 3
+          }
+        }
+      }
+    }
+  }
+}

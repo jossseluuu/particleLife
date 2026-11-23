@@ -1,0 +1,16 @@
+{
+  // Estilo de todos los .md del repositorio (npm run lint:md). HTML en línea permitido: lo usan
+  // el README de GitHub y las páginas de VitePress (figuras, insignias, matrices).
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD033": false,
+    "MD041": false,
+    "MD024": { "siblings_only": true },
+    // VitePress quita las tildes de las anclas (#propulsion) y esta regla las espera al estilo GitHub;
+    // las anclas se verifican sobre el HTML compilado con scripts/check-links.mjs.
+    "MD051": false
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["node_modules/**", "dist/**", "dist-single/**", "screenshots/**", "docs/.vitepress/cache/**"]
+}

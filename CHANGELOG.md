@@ -5,6 +5,25 @@ y el proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido
+
+- **Web de documentación** con VitePress, publicada junto a la demo en `/docs/`: guía, recetas, conceptos,
+  referencia, desarrollo, buscador local y modo claro/oscuro.
+- `src/params.ts`: metadatos de los 53 parámetros como fuente única de verdad para el panel y la documentación.
+- Generación automática (`npm run docs:gen`) de la referencia de parámetros, la galería de presets con sus
+  matrices y el JSON Schema del formato de guardado.
+- Descripción de cada preset.
+- Enlaces `#preset=N` para abrir un preset directamente (también sin recargar la página).
+- Enlace a la documentación en la ayuda de la app.
+- Controles de documentación en CI: `docs:gen --check`, markdownlint, build de VitePress y comprobación de anclas.
+- `npm run check` (verificación local completa) y pruebas de que los valores por defecto y de los presets
+  respetan los rangos del panel.
+
+### Cambiado
+
+- El panel toma etiquetas, rangos y opciones de `src/params.ts`.
+- `docs/ARCHITECTURE.md` pasa a `docs/referencia/arquitectura.md`.
+
 ## [1.0.0] - 2026-11-23
 
 Primera versión pública.

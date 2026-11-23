@@ -9,9 +9,10 @@ Reglas mínimas de atracción y repulsión entre especies → células, serpient
 [![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-7c3aed)](https://jossseluuu.github.io/particleLife/)
 [![WebGPU](https://img.shields.io/badge/WebGPU-WGSL-005a9c)](https://www.w3.org/TR/webgpu/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](tsconfig.json)
+[![Documentación](https://img.shields.io/badge/docs-VitePress-a78bfa)](https://jossseluuu.github.io/particleLife/docs/)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
 
-**[▶ Abrir la demo](https://jossseluuu.github.io/particleLife/)** · [English](README.en.md) · [Arquitectura](docs/ARCHITECTURE.md) · [Contribuir](CONTRIBUTING.md)
+**[▶ Abrir la demo](https://jossseluuu.github.io/particleLife/)** · **[📚 Documentación](https://jossseluuu.github.io/particleLife/docs/)** · [English](README.en.md) · [Contribuir](CONTRIBUTING.md)
 
 <img src="docs/media/demo.webp" alt="Animación: partículas de ocho especies formando cadenas y cúmulos que se persiguen" width="720">
 
@@ -29,6 +30,7 @@ Reglas mínimas de atracción y repulsión entre especies → células, serpient
 - [Rendimiento](#rendimiento)
 - [Pruebas](#pruebas)
 - [Cómo funciona](#cómo-funciona)
+- [Documentación](#documentación)
 - [Publicar tu propia copia](#publicar-tu-propia-copia)
 - [Contribuir](#contribuir) · [Licencia](#licencia)
 
@@ -57,7 +59,7 @@ todo editable mientras corre.
 | 💻 **Funciona en cualquier navegador** | Sin WebGPU cambia solo a un motor CPU con las mismas reglas (validado contra el de GPU). |
 | 📱 **Escritorio y móvil** | Ratón, teclado y gestos táctiles (pellizcar para zoom); interfaz plegable en pantallas pequeñas. |
 | 🔗 **Compartible** | Cada mundo se guarda como enlace comprimido, JSON o captura PNG. |
-| ✅ **Probado** | 187 comprobaciones unitarias en CI, validación en GPU real (rejilla vs fuerza bruta, CPU vs GPU) y pruebas E2E en Chrome. |
+| ✅ **Probado** | 201 comprobaciones unitarias en CI, validación en GPU real (rejilla vs fuerza bruta, CPU vs GPU) y pruebas E2E en Chrome. |
 
 ## Galería de presets
 
@@ -143,7 +145,7 @@ El modo CPU arranca con 6 000 partículas para mantener una tasa de frames fluid
 ## Pruebas
 
 ```bash
-npm test               # 187 comprobaciones unitarias sin GPU (se ejecutan en CI)
+npm test               # 201 comprobaciones unitarias sin GPU (se ejecutan en CI)
 npm run test:gpu       # en tu GPU con Dawn: rejilla vs fuerza bruta, CPU vs GPU, estabilidad, rendimiento
 npm run test:browser   # con `npm run dev` arrancado: Chrome real en escritorio GPU, modo CPU y móvil táctil
 npm run test:all       # tipos + unitarios + GPU
@@ -179,7 +181,23 @@ Cada paso en GPU es un único compute pass con cuatro fases: **conteo por celda 
 niveles → reordenación física de las partículas → fuerzas sobre las 3×3 celdas vecinas**.
 Integración semi-implícita con rozamiento exponencial en un mundo toroidal.
 
-Detalle completo de módulos, buffers, shaders y decisiones de diseño en **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+Explicación completa en la documentación: [modelo físico](https://jossseluuu.github.io/particleLife/docs/conceptos/modelo-fisico), [comportamientos](https://jossseluuu.github.io/particleLife/docs/conceptos/comportamientos) y [arquitectura en GPU](https://jossseluuu.github.io/particleLife/docs/referencia/arquitectura).
+
+## Documentación
+
+La **[web de documentación](https://jossseluuu.github.io/particleLife/docs/)** (con buscador) cubre todo lo que este README resume:
+
+| Sección | Contenido |
+| --- | --- |
+| [Guía](https://jossseluuu.github.io/particleLife/docs/guia/empezar) | Primeros pasos, interfaz, controles, editor de matrices, guardar y compartir, problemas frecuentes |
+| [Recetas](https://jossseluuu.github.io/particleLife/docs/guia/recetas) | Paso a paso para conseguir células, serpientes, bandadas, vórtices, ondas espirales o galaxias |
+| [Galería de presets](https://jossseluuu.github.io/particleLife/docs/guia/presets) | Los 12 presets con sus matrices reales y enlace para abrir cada uno |
+| [Conceptos](https://jossseluuu.github.io/particleLife/docs/conceptos/particle-life) | Emergencia y asimetría, la ley de fuerza, la integración y cada comportamiento |
+| [Referencia](https://jossseluuu.github.io/particleLife/docs/referencia/parametros) | Los 53 parámetros, el formato de guardado con [JSON Schema](https://jossseluuu.github.io/particleLife/docs/config.schema.json), arquitectura y rendimiento |
+| [Desarrollo](https://jossseluuu.github.io/particleLife/docs/desarrollo/contribuir) | Contribuir, pruebas y cómo funciona el sistema de documentación |
+
+La referencia de parámetros, la galería de presets y el JSON Schema **se generan del código**
+(`npm run docs:gen`) y el CI falla si se quedan desfasados. Para trabajar en ella: `npm run docs:dev`.
 
 ## Publicar tu propia copia
 
@@ -188,7 +206,11 @@ publica en GitHub Pages en cada push a `main`.
 
 1. Haz un fork (o sube tu copia a un repositorio nuevo).
 2. En GitHub: **Settings → Pages → Source: GitHub Actions**.
-3. Haz push a `main`: en ~2 minutos estará en `https://<usuario>.github.io/<repositorio>/`.
+3. Haz push a `main`: en ~2 minutos estará en `https://<usuario>.github.io/<repositorio>/`
+   y la documentación en `…/<repositorio>/docs/`.
+
+Si tu repositorio no se llama `particleLife`, cambia `base` en `docs/.vitepress/config.mts`
+(la app no lo necesita: usa rutas relativas).
 
 `vite.config.ts` usa `base: './'`, así que `dist/` funciona en cualquier subruta o hosting estático
 (Netlify, Vercel, Cloudflare Pages, un servidor propio…).

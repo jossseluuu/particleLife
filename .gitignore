@@ -14,3 +14,7 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# caché de VitePress
+docs/.vitepress/cache
+docs/.vitepress/dist
