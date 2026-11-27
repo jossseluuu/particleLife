@@ -30,7 +30,7 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           awk -v h="## [$version]" 'index($0, h) == 1 {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
           [ -s notes.md ] || echo "Versión ${GITHUB_REF_NAME}" > notes.md
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           body_path: notes.md
           files: |
