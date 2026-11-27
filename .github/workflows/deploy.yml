@@ -44,7 +44,7 @@ jobs:
         run: npm run docs:build
       - name: Anclas y enlaces relativos
         run: npm run docs:links
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           path: dist
