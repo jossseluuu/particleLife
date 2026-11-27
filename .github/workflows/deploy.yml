@@ -20,7 +20,7 @@ jobs:
     name: Tipos, tests, docs y build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # historial completo: fechas «Actualizado» de la documentación
       - uses: actions/setup-node@v4
